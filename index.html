@@ -108,6 +108,15 @@
       <div class="map-controls">
         <label class="field-label" for="yearFilter" style="margin:0;">Anno</label>
         <select id="yearFilter" class="input" style="max-width:150px; width:auto;"></select>
+        <label class="field-label" for="disciplinaFilter" style="margin:0;">Disciplina</label>
+        <select id="disciplinaFilter" class="input" style="max-width:170px; width:auto;">
+          <option value="all">Tutte</option>
+          <option value="strada">Strada</option>
+          <option value="mtb">MTB</option>
+          <option value="gravel">Gravel</option>
+          <option value="virtuale">Virtuale (rulli)</option>
+          <option value="altro">Altro</option>
+        </select>
         <button type="button" class="btn btn-secondary" id="toggleEditModeBtn">Correggi posizioni</button>
         <button type="button" class="btn btn-ghost" id="resetAllPositionsBtn">Ripristina tutte le posizioni</button>
         <span class="map-controls-count" id="overrideCount"></span>
@@ -130,12 +139,23 @@
     <!-- HISTORY -->
     <section class="tab-panel" id="tab-history">
       <h2 class="panel-title">Storico attività</h2>
+      <div class="map-controls">
+        <label class="field-label" for="historyDisciplinaFilter" style="margin:0;">Disciplina</label>
+        <select id="historyDisciplinaFilter" class="input" style="max-width:170px; width:auto;">
+          <option value="all">Tutte</option>
+          <option value="strada">Strada</option>
+          <option value="mtb">MTB</option>
+          <option value="gravel">Gravel</option>
+          <option value="virtuale">Virtuale (rulli)</option>
+          <option value="altro">Altro</option>
+        </select>
+      </div>
       <div id="historyStatus" class="notice notice-info">Caricamento…</div>
       <div class="table-wrap">
         <table class="activities-table" id="activitiesTable">
           <thead>
             <tr>
-              <th>Data</th><th>Momento</th><th>Tipo</th><th>Partenza</th><th>Arrivo</th>
+              <th>Data</th><th>Momento</th><th>Tipo</th><th>Disciplina</th><th>Partenza</th><th>Arrivo</th>
               <th>Km</th><th>D+ (m)</th><th>T. movimento</th><th>Durata</th><th>Bici</th><th>Comuni</th>
             </tr>
           </thead>
@@ -217,6 +237,16 @@
         <select name="tipo" class="input" required>
           <option value="allenamento">Allenamento</option>
           <option value="gara">Gara</option>
+          <option value="altro">Altro</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="field-label">Disciplina</label>
+        <select name="disciplina" class="input" required>
+          <option value="strada">Strada</option>
+          <option value="mtb">MTB</option>
+          <option value="gravel">Gravel</option>
+          <option value="virtuale">Virtuale (rulli)</option>
           <option value="altro">Altro</option>
         </select>
       </div>

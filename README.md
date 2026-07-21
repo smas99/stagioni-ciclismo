@@ -136,21 +136,31 @@ chiamate a Google Sheets (richiede connessione internet) e le mappe
   campo prima di confermare.
 - **Attività manuale**: stesso form, vuoto, per uscite senza traccia GPS.
   Cerca e aggiungi i comuni a mano.
+- **Disciplina**: ogni attività (GPX, manuale o Strava) ha un campo
+  Disciplina — Strada, MTB, Gravel, Virtuale (rulli) o Altro. Per import
+  GPX/manuali lo scegli tu nel form (default "Strada"); per Strava viene
+  dedotto in automatico dal tipo di attività (`Ride`→Strada,
+  `MountainBikeRide`→MTB, `GravelRide`→Gravel, `VirtualRide`→Virtuale).
+  Serve a tenere separate, ad esempio, le uscite su strada da quelle
+  fatte sui rulli o in MTB nelle statistiche e sulla mappa.
 - **Mappa provincia**: 247 pallini, uno per comune. Rosso = mai visitato,
-  verde = presente in almeno un'attività salvata. In alto trovi un menu a
-  tendina **"Anno"**: selezionandolo, i pallini verdi e le statistiche sotto
-  ("comuni visitati", "attività", "km") si aggiornano per mostrare solo
-  quell'anno; scegliendo "Tutti gli anni" torni alla vista cumulativa. Utile
-  per rivedere anno per anno come si è "colorata" la provincia nel tempo.
-  L'elenco a fianco è cercabile e cliccabile. Le coordinate di partenza sono calcolate
-  automaticamente dai confini ISTAT e non sempre coincidono col centro
-  abitato: premendo **"Correggi posizioni"** puoi trascinare qualsiasi
-  pallino nella posizione giusta. La correzione si salva sul foglio Google
-  Sheets "Posizioni" (richiede Google Sheets collegato), quindi resta valida
-  su qualsiasi dispositivo o browser tu usi in futuro. "Ripristina tutte le
-  posizioni" annulla tutte le correzioni fatte; dal popup di un singolo
-  comune puoi ripristinare solo quello.
-- **Storico**: tabella di tutte le attività salvate sul foglio.
+  verde = presente in almeno un'attività salvata (che soddisfi i filtri
+  attivi). In alto trovi due menu a tendina, **"Anno"** e **"Disciplina"**,
+  combinabili tra loro: selezionandoli, i pallini verdi e le statistiche
+  sotto ("comuni visitati", "attività", "km") si aggiornano di conseguenza;
+  scegliendo "Tutti gli anni"/"Tutte" torni alla vista cumulativa. Utile ad
+  esempio per vedere solo i comuni raggiunti in MTB, o solo quelli del 2023
+  su strada. L'elenco a fianco è cercabile e cliccabile. Le coordinate di
+  partenza sono calcolate automaticamente dai confini ISTAT e non sempre
+  coincidono col centro abitato: premendo **"Correggi posizioni"** puoi
+  trascinare qualsiasi pallino nella posizione giusta. La correzione si
+  salva sul foglio Google Sheets "Posizioni" (richiede Google Sheets
+  collegato), quindi resta valida su qualsiasi dispositivo o browser tu usi
+  in futuro. "Ripristina tutte le posizioni" annulla tutte le correzioni
+  fatte; dal popup di un singolo comune puoi ripristinare solo quello.
+- **Storico**: tabella di tutte le attività salvate sul foglio, con lo
+  stesso filtro **"Disciplina"** sopra la tabella per mostrarne solo un
+  sottoinsieme (es. solo Strada).
 - **Impostazioni**: URL del foglio Google Sheets, collegamento Strava con
   sincronizzazione automatica (vedi sezione dedicata sopra), ed elenco delle
   tue bici (salvato anch'esso sul foglio, tab "Bici" — comodo
