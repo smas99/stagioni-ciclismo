@@ -43,8 +43,7 @@ const SHEET_ATTIVITA = 'Attivita';
 const HEADERS_ATTIVITA = [
   'id', 'data', 'momento', 'tipo', 'partenza', 'arrivo',
   'km', 'dislivello', 'tempoMovimento', 'durataTotale', 'bici', 'comuni', 'note', 'inserito',
-  'stravaId', // aggiunto in coda: non tocca l'ordine delle colonne già in uso
-  'disciplina' // strada / mtb / gravel / virtuale / altro — anche questa in coda
+  'stravaId' // aggiunto in coda: non tocca l'ordine delle colonne già in uso
 ];
 
 const SHEET_BICI = 'Bici';
@@ -226,8 +225,7 @@ function handleAddActivity_(d) {
     d.comuni || '',
     d.note || '',
     insertedAt,
-    d.stravaId || '',
-    d.disciplina || 'strada'
+    d.stravaId || ''
   ]);
 
   return jsonResponse_({ ok: true, id: id });
@@ -478,7 +476,6 @@ function handleStravaSync_() {
         endLatLng: a.end_latlng,
         polyline: a.map ? a.map.summary_polyline : '',
         workoutType: a.workout_type,
-        sportType: a.sport_type || a.type || '',
         gearName: gearName
       });
     });

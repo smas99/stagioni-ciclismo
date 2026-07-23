@@ -207,15 +207,6 @@
     return 'notte';
   }
 
-  function mapStravaSportTypeToDisciplina(sportType) {
-    const t = String(sportType || '').toLowerCase();
-    if (t.includes('virtual')) return 'virtuale';
-    if (t.includes('mountain') || t.includes('mtb')) return 'mtb';
-    if (t.includes('gravel')) return 'gravel';
-    if (t.includes('ride') || t.includes('bike') || t.includes('velomobile')) return 'strada';
-    return 'altro';
-  }
-
   async function importStravaActivity(a) {
     const overrides = stravaOverridesCache || {};
     const comuniPoints = GpxParser.buildComuniPoints(overrides);
@@ -238,7 +229,6 @@
       data: isNaN(startDate) ? '' : startDate.toISOString().slice(0, 10),
       momento: isNaN(startDate) ? 'mattino' : deriveMomento(startDate),
       tipo,
-      disciplina: mapStravaSportTypeToDisciplina(a.sportType),
       bici: a.gearName || '',
       partenza,
       arrivo,
@@ -363,7 +353,6 @@
         data: fd.get('data'),
         momento: fd.get('momento'),
         tipo: fd.get('tipo'),
-        disciplina: fd.get('disciplina') || 'strada',
         bici: fd.get('bici') || '',
         partenza: fd.get('partenza'),
         arrivo: fd.get('arrivo'),
@@ -495,7 +484,6 @@
   let mapInitialized = false;
   let editModeActive = false;
   let currentMapYear = 'all';
-  let currentMapDisciplina = 'all';
 
   async function ensureMapInit() {
     if (mapInitialized) { setTimeout(() => CnMap && window.dispatchEvent(new Event('resize')), 50); return; }
@@ -528,11 +516,6 @@
 
     el('#yearFilter').addEventListener('change', (e) => {
       currentMapYear = e.target.value;
-      applyVisitedToMap();
-    });
-
-    el('#disciplinaFilter').addEventListener('change', (e) => {
-      currentMapDisciplina = e.target.value;
       applyVisitedToMap();
     });
 
@@ -595,7 +578,7 @@
 
   function applyVisitedToMap() {
     populateYearFilter();
-    const visited = getVisitedComuniSet(currentMapYear, currentMapDisciplina);
+    const visited = getVisitedComuniSet(currentMapYear);
     CnMap.setVisited([...visited]);
     els('#comuniList .comune-row').forEach(row => {
       row.classList.toggle('visited', visited.has(row.dataset.name));
@@ -603,21 +586,14 @@
     updateYearStats(visited);
   }
 
-  function filterActivities(list, year, disciplina) {
-    return list.filter(a => {
-      if (year && year !== 'all' && String(a.data || '').slice(0, 4) !== String(year)) return false;
-      if (disciplina && disciplina !== 'all' && (a.disciplina || 'strada') !== disciplina) return false;
-      return true;
-    });
+  function activitiesForYear(year) {
+    if (!year || year === 'all') return activitiesCache;
+    return activitiesCache.filter(a => String(a.data || '').slice(0, 4) === String(year));
   }
 
-  function activitiesForYear(year, disciplina) {
-    return filterActivities(activitiesCache, year, disciplina);
-  }
-
-  function getVisitedComuniSet(year, disciplina) {
+  function getVisitedComuniSet(year) {
     const set = new Set();
-    activitiesForYear(year, disciplina).forEach(a => {
+    activitiesForYear(year).forEach(a => {
       String(a.comuni || '').split(',').map(s => s.trim()).filter(Boolean).forEach(c => set.add(c));
     });
     return set;
@@ -638,17 +614,14 @@
   }
 
   function updateYearStats(visited) {
-    const yearActivities = activitiesForYear(currentMapYear, currentMapDisciplina);
+    const yearActivities = activitiesForYear(currentMapYear);
     const totalKm = yearActivities.reduce((sum, a) => sum + (parseFloat(a.km) || 0), 0);
-    const yearLabel = currentMapYear === 'all' ? 'in totale' : `nel ${currentMapYear}`;
-    const disciplinaLabel = currentMapDisciplina === 'all' ? '' : ` · ${capitalize(currentMapDisciplina)}`;
+    const label = currentMapYear === 'all' ? 'in totale' : `nel ${currentMapYear}`;
     el('#yearStats').textContent =
-      `${visited.size} comuni visitati su 247 · ${yearActivities.length} attività · ${Math.round(totalKm).toLocaleString('it-IT')} km ${yearLabel}${disciplinaLabel}`;
+      `${visited.size} comuni visitati su 247 · ${yearActivities.length} attività · ${Math.round(totalKm).toLocaleString('it-IT')} km ${label}`;
   }
 
   // ---------- STORICO ----------
-  let currentHistoryDisciplina = 'all';
-
   async function refreshHistory() {
     const status = el('#historyStatus');
     const tbody = el('#activitiesTableBody');
@@ -665,27 +638,18 @@
     }
   }
 
-  function initHistoryFilter() {
-    el('#historyDisciplinaFilter').addEventListener('change', (e) => {
-      currentHistoryDisciplina = e.target.value;
-      renderActivitiesTable();
-    });
-  }
-
   function renderActivitiesTable() {
     const tbody = el('#activitiesTableBody');
-    const filtered = filterActivities(activitiesCache, 'all', currentHistoryDisciplina);
-    if (filtered.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; color:var(--ink-soft); padding:24px;">Nessuna attività trovata per questo filtro.</td></tr>`;
+    if (activitiesCache.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; color:var(--ink-soft); padding:24px;">Nessuna attività registrata ancora.</td></tr>`;
       return;
     }
-    const sorted = [...filtered].sort((a, b) => (b.data || '').localeCompare(a.data || ''));
+    const sorted = [...activitiesCache].sort((a, b) => (b.data || '').localeCompare(a.data || ''));
     tbody.innerHTML = sorted.map(a => `
       <tr>
         <td>${escapeHtml(a.data || '')}</td>
         <td>${escapeHtml(capitalize(a.momento))}</td>
         <td>${escapeHtml(capitalize(a.tipo))}</td>
-        <td>${escapeHtml(capitalize(a.disciplina || 'strada'))}</td>
         <td>${escapeHtml(a.partenza || '')}</td>
         <td>${escapeHtml(a.arrivo || '')}</td>
         <td>${escapeHtml(String(a.km ?? ''))}</td>
@@ -749,7 +713,6 @@
     initBikesSettings();
     initStravaSettings();
     initGpxImport();
-    initHistoryFilter();
     refreshBikesUI();
     loadHomeData();
   });
