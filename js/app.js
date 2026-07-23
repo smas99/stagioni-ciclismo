@@ -70,6 +70,8 @@
     } catch (err) {
       list.innerHTML = `<span class="panel-sub" style="margin:0; color:var(--terracotta-dark);">Errore nel caricamento bici: ${escapeHtml(err.message)}</span>`;
     }
+
+    refreshBikeSummaryUI();
   }
 
   function initBikesSettings() {
@@ -314,8 +316,8 @@
     return { getSelected: () => selected, setSelected: (arr) => { selected = [...arr]; render(); } };
   }
 
-  // ---------- FORM ATTIVITÀ (import GPX / manuale) ----------
-  function buildActivityForm(container, { prefill = {}, comuniIniziali = [], sourceLabel = '' } = {}) {
+  // ---------- FORM ATTIVITÀ (indoor) ----------
+  function buildActivityForm(container, { prefill = {}, comuniIniziali = [], indoor = false } = {}) {
     const tpl = el('#activityFormTemplate');
     container.innerHTML = '';
     const node = tpl.content.cloneNode(true);
@@ -333,16 +335,44 @@
     const resetBtn = el('[data-role="reset-btn"]', form);
     const submitBtn = el('[data-role="submit-btn"]', form);
 
+    if (indoor) {
+      ['partenza', 'arrivo', 'km', 'dislivello'].forEach(name => {
+        const field = form.elements[name];
+        if (!field) return;
+        field.value = '';
+        field.disabled = true;
+        field.required = false;
+      });
+
+      const biciField = form.elements['bici'];
+      if (biciField) {
+        biciField.value = 'RULLI';
+        biciField.disabled = true;
+      }
+
+      const chipSearch = el('[data-role="chip-search"]', form);
+      const chipWrap = el('[data-role="comuni-chip-input"]', form);
+      if (chipSearch) {
+        chipSearch.disabled = true;
+        chipSearch.placeholder = 'Non applicabile per attività indoor';
+      }
+      if (chipWrap) chipWrap.classList.add('chip-input-disabled');
+    }
+
     resetBtn.addEventListener('click', () => {
       form.reset();
       chipApi.setSelected([]);
       statusEl.textContent = '';
+      if (indoor) {
+        const biciField = form.elements['bici'];
+        if (biciField) biciField.value = 'RULLI';
+      }
     });
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const comuni = chipApi.getSelected();
-      if (comuni.length === 0) {
+      if (!indoor && comuni.length === 0) {
         statusEl.textContent = 'Aggiungi almeno un comune attraversato.';
         statusEl.style.color = 'var(--terracotta-dark)';
         return;
@@ -353,11 +383,11 @@
         data: fd.get('data'),
         momento: fd.get('momento'),
         tipo: fd.get('tipo'),
-        bici: fd.get('bici') || '',
-        partenza: fd.get('partenza'),
-        arrivo: fd.get('arrivo'),
-        km: parseFloat(fd.get('km')),
-        dislivello: parseFloat(fd.get('dislivello')) || 0,
+        bici: indoor ? 'RULLI' : (fd.get('bici') || ''),
+        partenza: indoor ? '' : fd.get('partenza'),
+        arrivo: indoor ? '' : fd.get('arrivo'),
+        km: indoor ? 0 : parseFloat(fd.get('km')),
+        dislivello: indoor ? 0 : (parseFloat(fd.get('dislivello')) || 0),
         tempoMovimento: fd.get('tempoMovimento'),
         durataTotale: fd.get('durataTotale'),
         note: fd.get('note') || '',
@@ -370,13 +400,15 @@
 
       try {
         await SheetsApi.addActivity(activity);
-        if (fd.get('bici')) {
-          try { await SheetsApi.addBike(fd.get('bici')); } catch (e) { /* non bloccante */ }
-        }
+        try { await SheetsApi.addBike(activity.bici || (fd.get('bici') || '')); } catch (e) { /* non bloccante */ }
         statusEl.style.color = '#2C5A2E';
         statusEl.textContent = 'Attività salvata correttamente ✓';
         form.reset();
         chipApi.setSelected([]);
+        if (indoor) {
+          const biciField = form.elements['bici'];
+          if (biciField) biciField.value = 'RULLI';
+        }
         refreshBikesUI();
         await loadHomeData();
       } catch (err) {
@@ -397,87 +429,9 @@
     container.dataset.built = '1';
     buildActivityForm(container, {
       prefill: { data: new Date().toISOString().slice(0, 10) },
-      comuniIniziali: []
+      comuniIniziali: [],
+      indoor: true
     });
-  }
-
-  // ---------- IMPORT GPX ----------
-  function initGpxImport() {
-    const dropzone = el('#gpxDropzone');
-    const input = el('#gpxInput');
-    const browseBtn = el('#gpxBrowseBtn');
-    const statusEl = el('#gpxParseStatus');
-    const formWrap = el('#gpxFormWrap');
-
-    browseBtn.addEventListener('click', () => input.click());
-    input.addEventListener('change', () => {
-      if (input.files[0]) handleGpxFile(input.files[0]);
-    });
-
-    ['dragenter', 'dragover'].forEach(evt =>
-      dropzone.addEventListener(evt, (e) => { e.preventDefault(); dropzone.classList.add('dragover'); })
-    );
-    ['dragleave', 'drop'].forEach(evt =>
-      dropzone.addEventListener(evt, (e) => { e.preventDefault(); dropzone.classList.remove('dragover'); })
-    );
-    dropzone.addEventListener('drop', (e) => {
-      const file = e.dataTransfer.files[0];
-      if (file) handleGpxFile(file);
-    });
-
-    async function handleGpxFile(file) {
-      formWrap.style.display = 'none';
-      showNotice(statusEl, `Analisi di "${file.name}" in corso…`, 'info');
-
-      let overrides = {};
-      if (SheetsApi.getUrl()) {
-        try {
-          overrides = await SheetsApi.fetchPositions();
-        } catch (err) {
-          // non bloccante: si procede con le posizioni di default dei comuni
-        }
-      }
-
-      const reader = new FileReader();
-      reader.onload = () => {
-        try {
-          const result = GpxParser.parseGpx(reader.result, overrides);
-          showNotice(
-            statusEl,
-            `Tracciato analizzato: ${result.pointCount} punti, ${result.distanceKm} km, ` +
-            `${result.comuni.length} comuni rilevati (entro 800 m dal pallino sulla mappa). Controlla e correggi i dati prima di confermare.`,
-            'success'
-          );
-          formWrap.style.display = 'block';
-          buildActivityForm(formWrap, {
-            prefill: {
-              data: result.data,
-              momento: result.momento,
-              partenza: result.partenza,
-              arrivo: result.arrivo,
-              km: result.distanceKm,
-              dislivello: result.dislivelloM !== null ? result.dislivelloM : '',
-              tempoMovimento: result.movingTimeFormatted || '',
-              durataTotale: result.totalTimeFormatted || ''
-            },
-            comuniIniziali: result.comuni
-          });
-          if (!result.hasTime) {
-            showNotice(statusEl,
-              'Il GPX non contiene timestamp: km e comuni sono calcolati, ma tempo in movimento e durata totale vanno inseriti a mano.',
-              'info');
-          } else if (result.dislivelloM === null) {
-            showNotice(statusEl,
-              'Il GPX non contiene dati di altitudine: inserisci il dislivello a mano.',
-              'info');
-          }
-        } catch (err) {
-          showNotice(statusEl, `Errore nell'analisi del GPX: ${err.message}`, 'error');
-        }
-      };
-      reader.onerror = () => showNotice(statusEl, 'Impossibile leggere il file.', 'error');
-      reader.readAsText(file);
-    }
   }
 
   // ---------- MAPPA ----------
@@ -530,15 +484,6 @@
       el('#toggleEditModeBtn').classList.toggle('btn-primary', editModeActive);
       el('#toggleEditModeBtn').classList.toggle('btn-secondary', !editModeActive);
       el('#editModeHint').style.display = editModeActive ? 'block' : 'none';
-    });
-
-    el('#resetAllPositionsBtn').addEventListener('click', async () => {
-      if (CnMap.overrideCount() === 0) return;
-      const ok = confirm('Ripristinare le posizioni originali di tutti i comuni corretti manualmente? L\'operazione non è reversibile.');
-      if (ok) {
-        await CnMap.resetAllPositions();
-        updateOverrideCount();
-      }
     });
   }
 
@@ -662,6 +607,84 @@
     `).join('');
   }
 
+  // ---------- RIEPILOGO PER BICI (home) ----------
+  function parseHMSToSeconds(str) {
+    if (!str) return 0;
+    const parts = String(str).split(':').map(n => parseInt(n, 10) || 0);
+    while (parts.length < 3) parts.unshift(0);
+    const [h, m, s] = parts.slice(-3);
+    return h * 3600 + m * 60 + s;
+  }
+
+  async function refreshBikeSummaryUI() {
+    const checksEl = el('#bikeSummaryChecks');
+    const statsEl = el('#bikeSummaryStats');
+    if (!checksEl) return;
+
+    if (!SheetsApi.getUrl()) {
+      checksEl.innerHTML = '<span class="panel-sub" style="margin:0;">Collega Google Sheets in "Impostazioni" per vedere il riepilogo per bici.</span>';
+      statsEl.style.display = 'none';
+      return;
+    }
+
+    let bikes;
+    try {
+      bikes = await SheetsApi.fetchBikes();
+    } catch (err) {
+      checksEl.innerHTML = `<span class="panel-sub" style="margin:0; color:var(--terracotta-dark);">Errore nel caricamento bici: ${escapeHtml(err.message)}</span>`;
+      statsEl.style.display = 'none';
+      return;
+    }
+
+    if (bikes.length === 0) {
+      checksEl.innerHTML = '<span class="panel-sub" style="margin:0;">Nessuna bici salvata ancora (aggiungila in "Impostazioni").</span>';
+      statsEl.style.display = 'none';
+      return;
+    }
+
+    const previouslyChecked = new Set(
+      els('input[type="checkbox"]', checksEl).filter(cb => cb.checked).map(cb => cb.value)
+    );
+
+    checksEl.innerHTML = bikes.map(b => `
+      <label class="bike-check">
+        <input type="checkbox" value="${escapeHtml(b)}" ${previouslyChecked.has(b) ? 'checked' : ''}>
+        ${escapeHtml(b)}
+      </label>
+    `).join('');
+
+    els('input[type="checkbox"]', checksEl).forEach(cb => {
+      cb.addEventListener('change', updateBikeSummaryStats);
+    });
+
+    updateBikeSummaryStats();
+  }
+
+  function updateBikeSummaryStats() {
+    const checksEl = el('#bikeSummaryChecks');
+    const statsEl = el('#bikeSummaryStats');
+    if (!checksEl || !statsEl) return;
+
+    const selected = els('input[type="checkbox"]:checked', checksEl).map(cb => cb.value);
+    if (selected.length === 0) {
+      statsEl.style.display = 'none';
+      return;
+    }
+
+    const selectedSet = new Set(selected);
+    const matching = activitiesCache.filter(a => selectedSet.has(String(a.bici || '').trim()));
+
+    const totalKm = matching.reduce((sum, a) => sum + (parseFloat(a.km) || 0), 0);
+    const totalSeconds = matching.reduce((sum, a) => sum + parseHMSToSeconds(a.tempoMovimento), 0);
+    const totalDislivello = matching.reduce((sum, a) => sum + (parseFloat(a.dislivello) || 0), 0);
+
+    el('#bikeSummaryCount').textContent = matching.length;
+    el('#bikeSummaryKm').textContent = Math.round(totalKm).toLocaleString('it-IT');
+    el('#bikeSummaryTime').textContent = GpxParser.formatHMS(totalSeconds);
+    el('#bikeSummaryDislivello').textContent = Math.round(totalDislivello).toLocaleString('it-IT');
+    statsEl.style.display = 'flex';
+  }
+
   // ---------- HOME ----------
   async function loadHomeData() {
     const status = el('#homeStatus');
@@ -691,6 +714,8 @@
     const pct = Math.round((visited.size / 247) * 100);
     el('#progressFill').style.width = `${pct}%`;
     el('#progressPct').textContent = `${pct}%`;
+
+    updateBikeSummaryStats();
   }
 
   // ---------- HELPERS ----------
@@ -712,7 +737,6 @@
     initSettings();
     initBikesSettings();
     initStravaSettings();
-    initGpxImport();
     refreshBikesUI();
     loadHomeData();
   });

@@ -197,7 +197,6 @@ function doPost(e) {
     if (action === 'removeBike') return handleRemoveBike_(body.name || '');
     if (action === 'setPosition') return handleSetPosition_(body.name || '', body.lat, body.lon);
     if (action === 'resetPosition') return handleResetPosition_(body.name || '');
-    if (action === 'resetAllPositions') return handleResetAllPositions_();
 
     return jsonResponse_({ error: 'Azione POST non riconosciuta.' });
   } catch (err) {
@@ -287,15 +286,6 @@ function handleResetPosition_(name) {
     if (String(values[i][0]) === name) {
       sheet.deleteRow(i + 1);
     }
-  }
-  return jsonResponse_({ ok: true });
-}
-
-function handleResetAllPositions_() {
-  const sheet = ensureSheet_(SHEET_POSIZIONI, HEADERS_POSIZIONI);
-  const lastRow = sheet.getLastRow();
-  if (lastRow > 1) {
-    sheet.deleteRows(2, lastRow - 1);
   }
   return jsonResponse_({ ok: true });
 }

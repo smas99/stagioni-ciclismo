@@ -24,6 +24,7 @@ body{
   color: var(--ink);
   font-family: 'Barlow', sans-serif;
   min-height:100vh;
+  overflow-x:hidden;
 }
 
 h1,h2,h3{
@@ -373,6 +374,51 @@ h1,h2,h3{
 .comune-row.visited .comune-dot{ background: var(--green-dot); }
 .comune-row.visited{ color: var(--forest-dark); font-weight:600; }
 
+/* ---------- RIEPILOGO PER BICI (home) ---------- */
+.bike-summary-block{
+  background:var(--white);
+  border:1px solid var(--line);
+  border-radius: var(--radius);
+  padding:20px;
+  margin-top:26px;
+}
+.bike-summary-checks{
+  display:flex; flex-wrap:wrap; gap:8px;
+  margin-bottom:18px;
+}
+.bike-check{
+  display:inline-flex; align-items:center; gap:7px;
+  background:var(--cream-dim);
+  border:1px solid var(--line);
+  border-radius:999px;
+  padding:7px 14px;
+  font-size:.92rem;
+  cursor:pointer;
+  user-select:none;
+}
+.bike-check:has(input:checked){
+  background: var(--forest);
+  color: var(--white);
+  border-color: var(--forest);
+}
+.bike-check input{ cursor:pointer; }
+.bike-summary-stats.hero-stats{ margin-top:4px; }
+.bike-summary-stats .stat-card:nth-child(1){ background: var(--forest-dark); }
+.bike-summary-stats .stat-card:nth-child(2){ background: var(--forest); }
+.bike-summary-stats .stat-card:nth-child(3){ background: var(--terracotta); }
+.bike-summary-stats .stat-card:nth-child(4){ background: var(--moss); }
+
+.input:disabled{
+  background: var(--cream-dim);
+  color: var(--ink-soft);
+  cursor:not-allowed;
+}
+.chip-input-disabled{
+  background: var(--cream-dim);
+  cursor:not-allowed;
+}
+.chip-input-disabled .chip-search{ cursor:not-allowed; }
+
 /* ---------- TABLE ---------- */
 .table-wrap{ overflow-x:auto; border:1px solid var(--line); border-radius: var(--radius); background:var(--white); }
 .activities-table{ width:100%; border-collapse: collapse; font-size:.9rem; min-width:820px; }
@@ -449,3 +495,69 @@ h1,h2,h3{
 }
 .leaflet-marker-draggable{ cursor: grab; }
 .leaflet-drag-target, .leaflet-marker-draggable:active{ cursor: grabbing; }
+
+/* ---------- RESPONSIVE ---------- */
+
+/* Tablet e mappa più bassa quando lo schermo si restringe */
+@media (max-width: 900px){
+  .map-canvas{ height:460px; }
+  .comuni-list-wrap{ max-height:460px; }
+}
+
+/* Mobile */
+@media (max-width: 700px){
+  .app-shell{ padding: 0 14px 40px; }
+
+  .topbar{ padding: 18px 0 14px; margin-bottom:20px; }
+  .brand{ margin-bottom:14px; gap:8px; }
+  .brand-mark{ font-size:1.5rem; }
+  .brand-sub{ font-size:.72rem; letter-spacing:.05em; }
+
+  /* Barra dei tab scorrevole orizzontalmente invece di andare a capo */
+  .tabs{
+    flex-wrap:nowrap;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:thin;
+    padding-bottom:6px;
+    margin:0 -14px;
+    padding-left:14px;
+    padding-right:14px;
+  }
+  .tabs::-webkit-scrollbar{ height:4px; }
+  .tab-btn{ flex:none; padding:8px 14px; font-size:.9rem; white-space:nowrap; }
+
+  .hero{ gap:18px; padding-bottom:18px; margin-bottom:18px; }
+  .hero-copy{ max-width:none; }
+  .hero-stats{ width:100%; }
+  .hero-stats .stat-card,
+  .bike-summary-stats .stat-card{
+    flex:1 1 calc(50% - 7px);
+    min-width:0;
+  }
+
+  .progress-block{ margin-bottom:20px; }
+
+  .form-grid{ gap:12px 14px; }
+  .activity-form{ padding:16px; }
+
+  .settings-actions,
+  .bike-add-row,
+  .map-controls{ flex-wrap:wrap; }
+
+  .chip-search{ min-width:100%; }
+
+  .bike-summary-block{ padding:16px; margin-top:20px; }
+
+  .settings-block{ padding:16px; }
+}
+
+/* Smartphone piccoli */
+@media (max-width: 480px){
+  .stat-card{ min-width:0; padding:14px 12px; }
+  .stat-value{ font-size:1.5rem; }
+  .btn{ padding:9px 15px; font-size:.85rem; }
+  .map-canvas{ height:360px; }
+  .comuni-list-wrap{ max-height:300px; }
+  .panel-title{ font-size:1.3rem; }
+}

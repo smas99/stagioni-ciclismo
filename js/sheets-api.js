@@ -89,10 +89,6 @@ const SheetsApi = (() => {
     return apiPost({ action: 'resetPosition', name });
   }
 
-  async function resetAllPositions() {
-    return apiPost({ action: 'resetAllPositions' });
-  }
-
   async function testConnection() {
     return apiGet('ping');
   }
@@ -117,7 +113,7 @@ const SheetsApi = (() => {
     getUrl, setUrl,
     fetchActivities, addActivity,
     fetchBikes, addBike, removeBike,
-    fetchPositions, setPosition, resetPosition, resetAllPositions,
+    fetchPositions, setPosition, resetPosition,
     testConnection,
     stravaAuthUrl, stravaStatus, stravaSync
   };

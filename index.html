@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Granfondo Personale — Cuneo</title>
+<title>247 comuni della provincia di Cuneo</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
@@ -21,14 +21,12 @@
     <div class="brand">
       <span class="brand-mark">⛰</span>
       <div class="brand-text">
-        <span class="brand-title">Granfondo Personale</span>
         <span class="brand-sub">247 comuni della provincia di Cuneo</span>
       </div>
     </div>
     <nav class="tabs" id="mainTabs">
       <button class="tab-btn active" data-tab="home">Home</button>
-      <button class="tab-btn" data-tab="import">Importa GPX</button>
-      <button class="tab-btn" data-tab="manual">Attività manuale</button>
+      <button class="tab-btn" data-tab="manual">Attività indoor</button>
       <button class="tab-btn" data-tab="map">Mappa provincia</button>
       <button class="tab-btn" data-tab="history">Storico</button>
       <button class="tab-btn" data-tab="settings">Impostazioni</button>
@@ -42,8 +40,8 @@
       <div class="hero">
         <div class="hero-copy">
           <p class="eyebrow">Il mio progetto ciclistico</p>
-          <h1>Un comune alla volta, tutta la provincia in bici.</h1>
-          <p class="hero-lead">Importa le tue uscite GPX, tieni traccia dei comuni attraversati e guarda la mappa colorarsi di verde, uno dopo l'altro.</p>
+          <h1>Nei 247 comuni della provincia di Cuneo.</h1>
+          <p class="hero-lead">Tieni traccia dei comuni attraversati in bici e guarda la mappa colorarsi di verde, uno dopo l'altro.</p>
         </div>
         <div class="hero-stats" id="homeStats">
           <div class="stat-card">
@@ -72,31 +70,36 @@
       <div id="homeStatus" class="notice notice-info">
         Caricamento dati da Google Sheets…
       </div>
-    </section>
 
-    <!-- IMPORT GPX -->
-    <section class="tab-panel" id="tab-import">
-      <h2 class="panel-title">Importa un'attività da file GPX</h2>
-      <p class="panel-sub">Il tracciato viene analizzato in locale nel browser: distanza, tempi e comuni attraversati vengono calcolati automaticamente. Potrai correggere tutto prima di confermare.</p>
-
-      <div class="dropzone" id="gpxDropzone">
-        <input type="file" id="gpxInput" accept=".gpx" hidden>
-        <div class="dropzone-inner">
-          <span class="dropzone-icon">📂</span>
-          <p><strong>Trascina qui un file .gpx</strong> oppure</p>
-          <button type="button" class="btn btn-primary" id="gpxBrowseBtn">Scegli file</button>
+      <div class="bike-summary-block">
+        <h3>Filtro per bici</h3>
+        <p class="panel-sub" style="margin-bottom:14px;">Seleziona una o più bici per vedere numero di attività, km, tempo in bici e dislivello totalizzati.</p>
+        <div class="bike-summary-checks" id="bikeSummaryChecks"></div>
+        <div class="hero-stats bike-summary-stats" id="bikeSummaryStats" style="display:none;">
+          <div class="stat-card">
+            <span class="stat-value" id="bikeSummaryCount">–</span>
+            <span class="stat-label">attività</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-value" id="bikeSummaryKm">–</span>
+            <span class="stat-label">km</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-value" id="bikeSummaryTime">–</span>
+            <span class="stat-label">tempo in bici</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-value" id="bikeSummaryDislivello">–</span>
+            <span class="stat-label">dislivello (m)</span>
+          </div>
         </div>
       </div>
-
-      <div id="gpxParseStatus" class="notice" style="display:none;"></div>
-
-      <div id="gpxFormWrap" style="display:none;"></div>
     </section>
 
-    <!-- MANUAL -->
+    <!-- ATTIVITÀ INDOOR -->
     <section class="tab-panel" id="tab-manual">
-      <h2 class="panel-title">Aggiungi un'attività manuale</h2>
-      <p class="panel-sub">Stessi campi dell'import GPX, da compilare a mano. Seleziona tu i comuni attraversati.</p>
+      <h2 class="panel-title">Attività indoor</h2>
+      <p class="panel-sub">Uscite sui rulli: niente percorso, km, dislivello o comuni. Bici fissa su "RULLI".</p>
       <div id="manualFormWrap"></div>
     </section>
 
@@ -109,7 +112,6 @@
         <label class="field-label" for="yearFilter" style="margin:0;">Anno</label>
         <select id="yearFilter" class="input" style="max-width:150px; width:auto;"></select>
         <button type="button" class="btn btn-secondary" id="toggleEditModeBtn">Correggi posizioni</button>
-        <button type="button" class="btn btn-ghost" id="resetAllPositionsBtn">Ripristina tutte le posizioni</button>
         <span class="map-controls-count" id="overrideCount"></span>
       </div>
       <p class="panel-sub" id="yearStats" style="margin:0 0 12px 0;"></p>
@@ -195,7 +197,7 @@
   </main>
 </div>
 
-<!-- Template per il form attività (usato sia da import GPX che manuale) -->
+<!-- Template per il form attività (usato dall'attività indoor) -->
 <template id="activityFormTemplate">
   <form class="activity-form">
     <div class="form-grid">

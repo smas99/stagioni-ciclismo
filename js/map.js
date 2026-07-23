@@ -165,23 +165,6 @@ const CnMap = (() => {
     }
   }
 
-  async function resetAllPositions() {
-    notifyOverrideChange('saving');
-    try {
-      await SheetsApi.resetAllPositions();
-      overrides = {};
-      Object.entries(markersByName).forEach(([name, marker]) => {
-        const base = baseCoordsByName[name];
-        marker.setLatLng([base.lat, base.lon]);
-        if (marker.isPopupOpen()) marker.setPopupContent(popupHtml(name));
-      });
-      notifyOverrideChange('saved');
-    } catch (err) {
-      notifySaveError(err, null);
-      notifyOverrideChange('error');
-    }
-  }
-
   function hasOverride(name) { return !!overrides[name]; }
   function overrideCount() { return Object.keys(overrides).length; }
 
@@ -197,6 +180,6 @@ const CnMap = (() => {
 
   return {
     init, setVisited, isVisited, focusComune, onSelect, onOverrideChange, onSaveError,
-    getAllNames, setEditMode, resetComune, resetAllPositions, hasOverride, overrideCount
+    getAllNames, setEditMode, resetComune, hasOverride, overrideCount
   };
 })();
