@@ -153,7 +153,7 @@
       <div class="settings-block">
         <h3>Collegamento a Google Sheets</h3>
         <p class="panel-sub">
-          Incolla qui l'URL della tua Web App di Google Apps Script (vedi <code>README.md</code> per la procedura di creazione, 10 minuti). I dati verranno letti e scritti direttamente sul tuo Google Sheet personale.
+          Incolla qui l'URL della Web App di Google Apps Script. I dati verranno letti e scritti direttamente sul Google Sheet personale.
         </p>
         <label class="field-label" for="sheetsUrlInput">URL Web App Apps Script</label>
         <input type="url" id="sheetsUrlInput" class="input" placeholder="https://script.google.com/macros/s/…/exec">
@@ -167,11 +167,9 @@
       <div class="settings-block">
         <h3>Strava</h3>
         <p class="panel-sub">
-          Sincronizza automaticamente le tue uscite in bici da Strava: km,
-          dislivello e tempi arrivano direttamente da Strava (più precisi),
-          comuni/partenza/arrivo vengono calcolati dal tracciato. Vedi
-          <code>README.md</code> per la configurazione iniziale (~10 minuti,
-          una volta sola).
+          Sincronizza automaticamente le uscite in bici da Strava: km,
+          dislivello e tempi arrivano direttamente da Strava,
+          comuni/partenza/arrivo vengono calcolati dal tracciato.
         </p>
         <div style="margin-bottom:12px;">
           <span id="stravaStatusText" class="panel-sub" style="margin:0;">Verifica stato…</span>
@@ -185,7 +183,7 @@
 
       <div class="settings-block">
         <h3>Le mie bici</h3>
-        <p class="panel-sub">Elenco bici proposto nei form (puoi comunque scriverne una nuova al volo).</p>
+        <p class="panel-sub">Elenco bici con possibilità di aggiunte.</p>
         <div class="bikes-list" id="bikesList"></div>
         <div class="bike-add-row">
           <input type="text" id="newBikeInput" class="input" placeholder="Es. Bianchi Infinito CV">
