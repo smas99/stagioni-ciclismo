@@ -401,6 +401,7 @@ function stravaApiGet_(path, accessToken) {
 
 function isBikeActivity_(a) {
   const t = String(a.sport_type || a.type || '').toLowerCase();
+  if (t === 'virtualride') return false; // dal 27/07/2026: le attività virtuali non vengono più importate
   return t.indexOf('ride') !== -1 || t.indexOf('bike') !== -1 || t.indexOf('velomobile') !== -1;
 }
 
