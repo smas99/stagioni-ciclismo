@@ -5,7 +5,6 @@
 (() => {
   let ALL_COMUNI = [];
   let activitiesCache = [];
-  let currentHomeYear = 'all';
 
   // ---------- UTIL ----------
   function el(sel, root = document) { return root.querySelector(sel); }
@@ -459,10 +458,8 @@
     CnMap.init('cnMap', positions);
     renderComuniList();
     applyVisitedToMap();
-    updateOverrideCount();
 
     CnMap.onSelect((name) => highlightComuneInList(name));
-    CnMap.onOverrideChange((count, status) => updateOverrideCount(status));
     CnMap.onSaveError((err, name) => {
       showNotice(saveStatus,
         `Errore nel salvataggio della posizione${name ? ' di ' + name : ''}: ${err.message}`,
@@ -487,15 +484,6 @@
       el('#editModeHint').style.display = editModeActive ? 'block' : 'none';
     });
   }
-
-  function updateOverrideCount(status) {
-    const n = CnMap.overrideCount();
-    let txt = n > 0 ? `${n} posizion${n === 1 ? 'e corretta' : 'i corrette'} manualmente` : '';
-    if (status === 'saving') txt += (txt ? ' · ' : '') + 'salvataggio…';
-    el('#overrideCount').textContent = txt;
-    if (status === 'saved') hideNotice(el('#mapSaveStatus'));
-  }
-
 
   function renderComuniList() {
     const listEl = el('#comuniList');
@@ -661,46 +649,19 @@
     updateBikeSummaryStats();
   }
 
-  function initHomeYearFilter() {
-    const sel = el('#homeYearFilter');
-    if (!sel) return;
-    sel.addEventListener('change', (e) => {
-      currentHomeYear = e.target.value;
-      updateBikeSummaryStats();
-    });
-  }
-
-  function populateHomeYearFilter() {
-    const sel = el('#homeYearFilter');
-    if (!sel) return;
-    const years = [...new Set(
-      activitiesCache.map(a => String(a.data || '').slice(0, 4)).filter(Boolean)
-    )].sort((a, b) => b.localeCompare(a));
-
-    const previousValue = sel.value || currentHomeYear;
-    sel.innerHTML = '<option value="all">Tutti gli anni</option>' +
-      years.map(y => `<option value="${y}">${y}</option>`).join('');
-
-    sel.value = (previousValue === 'all' || years.includes(previousValue)) ? previousValue : 'all';
-    currentHomeYear = sel.value;
-  }
-
   function updateBikeSummaryStats() {
     const checksEl = el('#bikeSummaryChecks');
     const statsEl = el('#bikeSummaryStats');
     if (!checksEl || !statsEl) return;
 
     const selected = els('input[type="checkbox"]:checked', checksEl).map(cb => cb.value);
-    if (selected.length === 0 && currentHomeYear === 'all') {
+    if (selected.length === 0) {
       statsEl.style.display = 'none';
       return;
     }
 
-    let matching = activitiesForYear(currentHomeYear);
-    if (selected.length > 0) {
-      const selectedSet = new Set(selected);
-      matching = matching.filter(a => selectedSet.has(String(a.bici || '').trim()));
-    }
+    const selectedSet = new Set(selected);
+    const matching = activitiesCache.filter(a => selectedSet.has(String(a.bici || '').trim()));
 
     const totalKm = matching.reduce((sum, a) => sum + (parseFloat(a.km) || 0), 0);
     const totalSeconds = matching.reduce((sum, a) => sum + parseHMSToSeconds(a.tempoMovimento), 0);
@@ -743,7 +704,6 @@
     el('#progressFill').style.width = `${pct}%`;
     el('#progressPct').textContent = `${pct}%`;
 
-    populateHomeYearFilter();
     updateBikeSummaryStats();
   }
 
@@ -766,7 +726,6 @@
     initSettings();
     initBikesSettings();
     initStravaSettings();
-    initHomeYearFilter();
     refreshBikesUI();
     loadHomeData();
   });
