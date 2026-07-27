@@ -668,6 +668,11 @@
     const statsEl = el('#bikeSummaryStats');
     if (!checksEl || !statsEl) return;
 
+    const yearNote = el('#bikeSummaryYearNote');
+    if (yearNote) {
+      yearNote.textContent = currentHomeYear === 'all' ? '(tutti gli anni)' : `(nel ${currentHomeYear})`;
+    }
+
     const selected = els('input[type="checkbox"]:checked', checksEl).map(cb => cb.value);
     if (selected.length === 0) {
       statsEl.style.display = 'none';
@@ -675,7 +680,8 @@
     }
 
     const selectedSet = new Set(selected);
-    const matching = activitiesCache.filter(a => selectedSet.has(String(a.bici || '').trim()));
+    const matching = activitiesForYear(currentHomeYear)
+      .filter(a => selectedSet.has(String(a.bici || '').trim()));
 
     const totalKm = matching.reduce((sum, a) => sum + (parseFloat(a.km) || 0), 0);
     const totalSeconds = matching.reduce((sum, a) => sum + parseHMSToSeconds(a.tempoMovimento), 0);
