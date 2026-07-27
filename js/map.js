@@ -50,9 +50,6 @@ const CnMap = (() => {
     let html = `<b>${name}</b>${visitedSet.has(name) ? ' ✅' : ''}`;
     if (editMode) {
       html += `<br><small>Trascina il pallino per correggere la posizione.</small>`;
-      if (hasOverride) {
-        html += `<br><button type="button" class="popup-reset-btn" data-name="${name}">Ripristina posizione originale</button>`;
-      }
     }
     return html;
   }
