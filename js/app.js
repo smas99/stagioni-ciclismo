@@ -438,6 +438,7 @@
   let mapInitialized = false;
   let editModeActive = false;
   let currentMapYear = 'all';
+  let currentHomeYear = 'all';
 
   async function ensureMapInit() {
     if (mapInitialized) { setTimeout(() => CnMap && window.dispatchEvent(new Event('resize')), 50); return; }
@@ -533,18 +534,31 @@
     return set;
   }
 
-  function populateYearFilter() {
-    const sel = el('#yearFilter');
-    const years = [...new Set(
+  function getAvailableYears() {
+    return [...new Set(
       activitiesCache.map(a => String(a.data || '').slice(0, 4)).filter(Boolean)
     )].sort((a, b) => b.localeCompare(a));
+  }
 
-    const previousValue = sel.value || currentMapYear;
+  // Popola un <select> di anni preservando, se possibile, il valore corrente.
+  // Ritorna il valore effettivo selezionato dopo il rebuild.
+  function populateYearSelect(sel, currentValue) {
+    const years = getAvailableYears();
+    const previousValue = sel.value || currentValue;
     sel.innerHTML = '<option value="all">Tutti gli anni</option>' +
       years.map(y => `<option value="${y}">${y}</option>`).join('');
-
     sel.value = (previousValue === 'all' || years.includes(previousValue)) ? previousValue : 'all';
-    currentMapYear = sel.value;
+    return sel.value;
+  }
+
+  function populateYearFilter() {
+    currentMapYear = populateYearSelect(el('#yearFilter'), currentMapYear);
+  }
+
+  function populateHomeYearFilter() {
+    const sel = el('#homeYearFilter');
+    if (!sel) return;
+    currentHomeYear = populateYearSelect(sel, currentHomeYear);
   }
 
   function updateYearStats(visited) {
@@ -693,16 +707,26 @@
   }
 
   function updateHomeStats() {
-    const visited = getVisitedComuniSet();
-    const totalKm = activitiesCache.reduce((sum, a) => sum + (parseFloat(a.km) || 0), 0);
+    populateHomeYearFilter();
+
+    const yearActivities = activitiesForYear(currentHomeYear);
+    const visited = getVisitedComuniSet(currentHomeYear);
+    const totalKm = yearActivities.reduce((sum, a) => sum + (parseFloat(a.km) || 0), 0);
 
     el('#statComuniVisitati').textContent = visited.size;
-    el('#statAttivita').textContent = activitiesCache.length;
+    el('#statAttivita').textContent = yearActivities.length;
     el('#statKm').textContent = Math.round(totalKm).toLocaleString('it-IT');
 
     const pct = Math.round((visited.size / 247) * 100);
     el('#progressFill').style.width = `${pct}%`;
     el('#progressPct').textContent = `${pct}%`;
+
+    const progressLabel = el('#progressLabel');
+    if (progressLabel) {
+      progressLabel.textContent = currentHomeYear === 'all'
+        ? 'Avanzamento provincia'
+        : `Avanzamento provincia nel ${currentHomeYear}`;
+    }
 
     updateBikeSummaryStats();
   }
@@ -723,6 +747,10 @@
     ALL_COMUNI = CUNEO_COMUNI_GEOJSON.features.map(f => f.properties.name).sort((a, b) => a.localeCompare(b, 'it'));
 
     initTabs();
+    el('#homeYearFilter').addEventListener('change', (e) => {
+      currentHomeYear = e.target.value;
+      updateHomeStats();
+    });
     initSettings();
     initBikesSettings();
     initStravaSettings();
