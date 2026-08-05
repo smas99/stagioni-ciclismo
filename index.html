@@ -28,6 +28,7 @@
       <button class="tab-btn active" data-tab="home">Home</button>
       <button class="tab-btn" data-tab="manual">Attività indoor</button>
       <button class="tab-btn" data-tab="map">Mappa provincia</button>
+      <button class="tab-btn" data-tab="routes">Percorsi</button>
       <button class="tab-btn" data-tab="history">Storico</button>
       <button class="tab-btn" data-tab="settings">Impostazioni</button>
     </nav>
@@ -42,10 +43,6 @@
           <p class="eyebrow">Ogni uscita conta</p>
           <h1>Nei 247 comuni della provincia di Cuneo.</h1>
           <p class="hero-lead">Tieni traccia dei comuni attraversati in bici e guarda la mappa colorarsi di verde, uno dopo l'altro.</p>
-          <div class="home-controls" style="display:flex; align-items:center; gap:10px; margin-top:14px;">
-            <label class="field-label" for="homeYearFilter" style="margin:0;">Anno</label>
-            <select id="homeYearFilter" class="input" style="max-width:150px; width:auto;"></select>
-          </div>
         </div>
         <div class="hero-stats" id="homeStats">
           <div class="stat-card">
@@ -65,7 +62,7 @@
 
       <div class="progress-block">
         <div class="progress-head">
-          <span id="progressLabel">Avanzamento provincia</span>
+          <span>Avanzamento provincia</span>
           <span id="progressPct">0%</span>
         </div>
         <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
@@ -77,7 +74,7 @@
 
       <div class="bike-summary-block">
         <h3>Filtro per bici</h3>
-        <p class="panel-sub" style="margin-bottom:14px;">Seleziona una o più bici per vedere numero di attività, km, tempo in bici e dislivello totalizzati <span id="bikeSummaryYearNote">(tutti gli anni)</span>.</p>
+        <p class="panel-sub" style="margin-bottom:14px;">Seleziona una o più bici per vedere numero di attività, km, tempo in bici e dislivello totalizzati.</p>
         <div class="bike-summary-checks" id="bikeSummaryChecks"></div>
         <div class="hero-stats bike-summary-stats" id="bikeSummaryStats" style="display:none;">
           <div class="stat-card">
@@ -133,6 +130,20 @@
       </div>
     </section>
 
+    <!-- ROUTES -->
+    <section class="tab-panel" id="tab-routes">
+      <h2 class="panel-title">Percorsi su mappa</h2>
+      <p class="panel-sub">Il tracciato reale delle uscite sincronizzate da Strava. Le attività inserite manualmente non hanno un file GPX associato e non compaiono qui.</p>
+
+      <div class="map-controls">
+        <label class="field-label" for="routesYearFilter" style="margin:0;">Anno</label>
+        <select id="routesYearFilter" class="input" style="max-width:150px; width:auto;"></select>
+      </div>
+      <p class="panel-sub" id="routesStats" style="margin:0 0 12px 0;"></p>
+
+      <div id="routesMap" class="map-canvas"></div>
+    </section>
+
     <!-- HISTORY -->
     <section class="tab-panel" id="tab-history">
       <h2 class="panel-title">Storico attività</h2>
@@ -183,6 +194,15 @@
           <button class="btn btn-primary" id="stravaSyncBtn" style="display:none;">Sincronizza ora</button>
         </div>
         <div id="stravaSyncStatus" class="notice" style="display:none;"></div>
+
+        <p class="panel-sub" style="margin-top:16px;">
+          Recupera il percorso disegnato sulla mappa "Percorsi" anche per le attività Strava
+          sincronizzate prima che questa funzione esistesse (può richiedere qualche minuto per molte attività).
+        </p>
+        <div class="settings-actions">
+          <button class="btn btn-secondary" id="stravaBackfillBtn">Recupera percorsi mancanti</button>
+        </div>
+        <div id="stravaBackfillStatus" class="notice" style="display:none;"></div>
       </div>
 
       <div class="settings-block">
@@ -284,6 +304,7 @@
 <script src="js/gpx-parser.js"></script>
 <script src="js/sheets-api.js"></script>
 <script src="js/map.js"></script>
+<script src="js/routes-map.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
