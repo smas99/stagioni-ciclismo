@@ -27,7 +27,6 @@
         el(`#tab-${btn.dataset.tab}`).classList.add('active');
 
         if (btn.dataset.tab === 'map') ensureMapInit();
-        if (btn.dataset.tab === 'routes') ensureRoutesMapInit();
         if (btn.dataset.tab === 'history') refreshHistory();
         if (btn.dataset.tab === 'manual') ensureManualForm();
       });
@@ -155,8 +154,6 @@
     const connectBtn = el('#stravaConnectBtn');
     const syncBtn = el('#stravaSyncBtn');
     const syncStatus = el('#stravaSyncStatus');
-    const backfillBtn = el('#stravaBackfillBtn');
-    const backfillStatus = el('#stravaBackfillStatus');
 
     connectBtn.addEventListener('click', async () => {
       try {
@@ -201,37 +198,6 @@
       }
     });
 
-    if (backfillBtn) {
-      backfillBtn.addEventListener('click', async () => {
-        backfillBtn.disabled = true;
-        let totalUpdated = 0;
-        let totalFailed = 0;
-        try {
-          // Ogni chiamata elabora un lotto lato backend (vedi BACKFILL_MAX_PER_RUN
-          // in Code.gs); si ripete finché non restano più righe da fare, per non
-          // superare i limiti di tempo di esecuzione di Apps Script.
-          while (true) {
-            showNotice(backfillStatus,
-              `Recupero percorsi in corso… (${totalUpdated} recuperati finora)`, 'info');
-            const result = await SheetsApi.backfillPolylines();
-            if (result.error) throw new Error(result.error);
-            totalUpdated += result.updated || 0;
-            totalFailed += result.failed || 0;
-            if (!result.remaining) break;
-          }
-          showNotice(backfillStatus,
-            `Fatto: ${totalUpdated} percorsi recuperati${totalFailed ? `, ${totalFailed} attività senza tracciato su Strava` : ''}.`,
-            'success');
-          await loadHomeData();
-          if (routesMapInitialized) applyRoutesToMap();
-        } catch (err) {
-          showNotice(backfillStatus, `Errore nel recupero dei percorsi: ${err.message}`, 'error');
-        } finally {
-          backfillBtn.disabled = false;
-        }
-      });
-    }
-
     refreshStravaStatus();
   }
 
@@ -274,8 +240,7 @@
       durataTotale: GpxParser.formatHMS(a.elapsedTime || 0),
       note: a.name ? `Importato da Strava: ${a.name}` : 'Importato da Strava',
       comuni: comuni.join(', '),
-      stravaId: a.stravaId,
-      polyline: a.polyline || ''
+      stravaId: a.stravaId
     };
 
     await SheetsApi.addActivity(activity);
@@ -473,6 +438,7 @@
   let mapInitialized = false;
   let editModeActive = false;
   let currentMapYear = 'all';
+  let currentHomeYear = 'all';
 
   async function ensureMapInit() {
     if (mapInitialized) { setTimeout(() => CnMap && window.dispatchEvent(new Event('resize')), 50); return; }
@@ -493,10 +459,8 @@
     CnMap.init('cnMap', positions);
     renderComuniList();
     applyVisitedToMap();
-    updateOverrideCount();
 
     CnMap.onSelect((name) => highlightComuneInList(name));
-    CnMap.onOverrideChange((count, status) => updateOverrideCount(status));
     CnMap.onSaveError((err, name) => {
       showNotice(saveStatus,
         `Errore nel salvataggio della posizione${name ? ' di ' + name : ''}: ${err.message}`,
@@ -521,15 +485,6 @@
       el('#editModeHint').style.display = editModeActive ? 'block' : 'none';
     });
   }
-
-  function updateOverrideCount(status) {
-    const n = CnMap.overrideCount();
-    let txt = n > 0 ? `${n} posizion${n === 1 ? 'e corretta' : 'i corrette'} manualmente` : '';
-    if (status === 'saving') txt += (txt ? ' · ' : '') + 'salvataggio…';
-    el('#overrideCount').textContent = txt;
-    if (status === 'saved') hideNotice(el('#mapSaveStatus'));
-  }
-
 
   function renderComuniList() {
     const listEl = el('#comuniList');
@@ -579,18 +534,31 @@
     return set;
   }
 
-  function populateYearFilter() {
-    const sel = el('#yearFilter');
-    const years = [...new Set(
+  function getAvailableYears() {
+    return [...new Set(
       activitiesCache.map(a => String(a.data || '').slice(0, 4)).filter(Boolean)
     )].sort((a, b) => b.localeCompare(a));
+  }
 
-    const previousValue = sel.value || currentMapYear;
+  // Popola un <select> di anni preservando, se possibile, il valore corrente.
+  // Ritorna il valore effettivo selezionato dopo il rebuild.
+  function populateYearSelect(sel, currentValue) {
+    const years = getAvailableYears();
+    const previousValue = sel.value || currentValue;
     sel.innerHTML = '<option value="all">Tutti gli anni</option>' +
       years.map(y => `<option value="${y}">${y}</option>`).join('');
-
     sel.value = (previousValue === 'all' || years.includes(previousValue)) ? previousValue : 'all';
-    currentMapYear = sel.value;
+    return sel.value;
+  }
+
+  function populateYearFilter() {
+    currentMapYear = populateYearSelect(el('#yearFilter'), currentMapYear);
+  }
+
+  function populateHomeYearFilter() {
+    const sel = el('#homeYearFilter');
+    if (!sel) return;
+    currentHomeYear = populateYearSelect(sel, currentHomeYear);
   }
 
   function updateYearStats(visited) {
@@ -599,54 +567,6 @@
     const label = currentMapYear === 'all' ? 'in totale' : `nel ${currentMapYear}`;
     el('#yearStats').textContent =
       `${visited.size} comuni visitati su 247 · ${yearActivities.length} attività · ${Math.round(totalKm).toLocaleString('it-IT')} km ${label}`;
-  }
-
-  // ---------- MAPPA PERCORSI ----------
-  let routesMapInitialized = false;
-  let currentRoutesYear = 'all';
-
-  async function ensureRoutesMapInit() {
-    if (routesMapInitialized) {
-      setTimeout(() => CnRoutesMap && CnRoutesMap.invalidateSize(), 50);
-      return;
-    }
-    routesMapInitialized = true;
-
-    CnRoutesMap.init('routesMap');
-    applyRoutesToMap();
-
-    el('#routesYearFilter').addEventListener('change', (e) => {
-      currentRoutesYear = e.target.value;
-      applyRoutesToMap();
-    });
-  }
-
-  function populateRoutesYearFilter() {
-    const sel = el('#routesYearFilter');
-    const years = [...new Set(
-      activitiesCache.map(a => String(a.data || '').slice(0, 4)).filter(Boolean)
-    )].sort((a, b) => b.localeCompare(a));
-
-    const previousValue = sel.value || currentRoutesYear;
-    sel.innerHTML = '<option value="all">Tutti gli anni</option>' +
-      years.map(y => `<option value="${y}">${y}</option>`).join('');
-
-    sel.value = (previousValue === 'all' || years.includes(previousValue)) ? previousValue : 'all';
-    currentRoutesYear = sel.value;
-  }
-
-  function applyRoutesToMap() {
-    populateRoutesYearFilter();
-    const yearActivities = activitiesForYear(currentRoutesYear);
-    const drawn = CnRoutesMap.setRoutes(yearActivities.filter(a => a.polyline));
-
-    const label = currentRoutesYear === 'all' ? 'in totale' : `nel ${currentRoutesYear}`;
-    const withoutRoute = yearActivities.length - drawn;
-    let txt = `${drawn} percors${drawn === 1 ? 'o disegnato' : 'i disegnati'} ${label}`;
-    if (withoutRoute > 0) {
-      txt += ` · ${withoutRoute} attività senza tracciato disponibile`;
-    }
-    el('#routesStats').textContent = txt;
   }
 
   // ---------- STORICO ----------
@@ -659,7 +579,6 @@
       hideNotice(status);
       renderActivitiesTable();
       applyVisitedToMap();
-      if (routesMapInitialized) applyRoutesToMap();
       updateHomeStats();
     } catch (err) {
       showNotice(status, `Impossibile caricare lo storico: ${err.message}`, 'error');
@@ -749,6 +668,11 @@
     const statsEl = el('#bikeSummaryStats');
     if (!checksEl || !statsEl) return;
 
+    const yearNote = el('#bikeSummaryYearNote');
+    if (yearNote) {
+      yearNote.textContent = currentHomeYear === 'all' ? '(tutti gli anni)' : `(nel ${currentHomeYear})`;
+    }
+
     const selected = els('input[type="checkbox"]:checked', checksEl).map(cb => cb.value);
     if (selected.length === 0) {
       statsEl.style.display = 'none';
@@ -756,7 +680,8 @@
     }
 
     const selectedSet = new Set(selected);
-    const matching = activitiesCache.filter(a => selectedSet.has(String(a.bici || '').trim()));
+    const matching = activitiesForYear(currentHomeYear)
+      .filter(a => selectedSet.has(String(a.bici || '').trim()));
 
     const totalKm = matching.reduce((sum, a) => sum + (parseFloat(a.km) || 0), 0);
     const totalSeconds = matching.reduce((sum, a) => sum + parseHMSToSeconds(a.tempoMovimento), 0);
@@ -782,23 +707,32 @@
       hideNotice(status);
       updateHomeStats();
       if (mapInitialized) applyVisitedToMap();
-      if (routesMapInitialized) applyRoutesToMap();
     } catch (err) {
       showNotice(status, `Impossibile contattare il foglio Google Sheets: ${err.message}`, 'error');
     }
   }
 
   function updateHomeStats() {
-    const visited = getVisitedComuniSet();
-    const totalKm = activitiesCache.reduce((sum, a) => sum + (parseFloat(a.km) || 0), 0);
+    populateHomeYearFilter();
+
+    const yearActivities = activitiesForYear(currentHomeYear);
+    const visited = getVisitedComuniSet(currentHomeYear);
+    const totalKm = yearActivities.reduce((sum, a) => sum + (parseFloat(a.km) || 0), 0);
 
     el('#statComuniVisitati').textContent = visited.size;
-    el('#statAttivita').textContent = activitiesCache.length;
+    el('#statAttivita').textContent = yearActivities.length;
     el('#statKm').textContent = Math.round(totalKm).toLocaleString('it-IT');
 
     const pct = Math.round((visited.size / 247) * 100);
     el('#progressFill').style.width = `${pct}%`;
     el('#progressPct').textContent = `${pct}%`;
+
+    const progressLabel = el('#progressLabel');
+    if (progressLabel) {
+      progressLabel.textContent = currentHomeYear === 'all'
+        ? 'Avanzamento provincia'
+        : `Avanzamento provincia nel ${currentHomeYear}`;
+    }
 
     updateBikeSummaryStats();
   }
@@ -819,6 +753,10 @@
     ALL_COMUNI = CUNEO_COMUNI_GEOJSON.features.map(f => f.properties.name).sort((a, b) => a.localeCompare(b, 'it'));
 
     initTabs();
+    el('#homeYearFilter').addEventListener('change', (e) => {
+      currentHomeYear = e.target.value;
+      updateHomeStats();
+    });
     initSettings();
     initBikesSettings();
     initStravaSettings();

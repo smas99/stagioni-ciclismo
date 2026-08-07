@@ -109,20 +109,12 @@ const SheetsApi = (() => {
     return json.activities || [];
   }
 
-  // Backfill polyline per le attività Strava importate prima che la colonna
-  // esistesse. Il backend elabora un lotto per chiamata (vedi Code.gs):
-  // ritorna { updated, failed, remaining } così il chiamante può ripetere
-  // la chiamata finché remaining è 0.
-  async function backfillPolylines() {
-    return apiPost({ action: 'backfillPolylines' });
-  }
-
   return {
     getUrl, setUrl,
     fetchActivities, addActivity,
     fetchBikes, addBike, removeBike,
     fetchPositions, setPosition, resetPosition,
     testConnection,
-    stravaAuthUrl, stravaStatus, stravaSync, backfillPolylines
+    stravaAuthUrl, stravaStatus, stravaSync
   };
 })();
