@@ -27,6 +27,7 @@
         el(`#tab-${btn.dataset.tab}`).classList.add('active');
 
         if (btn.dataset.tab === 'map') ensureMapInit();
+        if (btn.dataset.tab === 'percorsi') ensureTracceMapInit();
         if (btn.dataset.tab === 'history') refreshHistory();
         if (btn.dataset.tab === 'manual') ensureManualForm();
       });
@@ -190,6 +191,7 @@
           showNotice(syncStatus, `Importate ${imported} nuove attività da Strava su ${activities.length} trovate.`, 'success');
           refreshBikesUI();
           await loadHomeData();
+          if (tracceMapInitialized) await refreshTracce();
         }
       } catch (err) {
         showNotice(syncStatus, `Errore nella sincronizzazione: ${err.message}`, 'error');
@@ -524,6 +526,117 @@
   function activitiesForYear(year) {
     if (!year || year === 'all') return activitiesCache;
     return activitiesCache.filter(a => String(a.data || '').slice(0, 4) === String(year));
+  }
+
+  // ---------- PERCORSI (mappa a parte dei tracciati) ----------
+  let tracceMapInitialized = false;
+  let tracceCache = [];
+  let currentPercorsiYear = 'all';
+
+  function activityByStravaId(stravaId) {
+    return activitiesCache.find(a => String(a.stravaId) === String(stravaId));
+  }
+
+  function percorsiForYear(year) {
+    if (!year || year === 'all') return tracceCache;
+    return tracceCache.filter(t => {
+      const act = activityByStravaId(t.stravaId);
+      return act && String(act.data || '').slice(0, 4) === String(year);
+    });
+  }
+
+  async function ensureTracceMapInit() {
+    if (tracceMapInitialized) { setTimeout(() => TracceMap.invalidateSize(), 50); return; }
+    tracceMapInitialized = true;
+
+    const status = el('#percorsiStatus');
+    if (!SheetsApi.getUrl()) {
+      showNotice(status, 'Collega Google Sheets in "Impostazioni" per vedere i percorsi.', 'info');
+      return;
+    }
+
+    TracceMap.init('tracceMap');
+
+    el('#percorsiYearFilter').addEventListener('change', (e) => {
+      currentPercorsiYear = e.target.value;
+      applyPercorsiFilter();
+    });
+
+    el('#percorsiSearch').addEventListener('input', (e) => {
+      const q = e.target.value.trim().toLowerCase();
+      els('.comune-row', el('#percorsiList')).forEach(row => {
+        row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+      });
+    });
+
+    await refreshTracce();
+  }
+
+  async function refreshTracce() {
+    const status = el('#percorsiStatus');
+    if (!SheetsApi.getUrl()) return;
+    showNotice(status, 'Caricamento percorsi dal foglio Google Sheets…', 'info');
+    try {
+      // le attività servono per etichettare ogni traccia (data, partenza, km…)
+      if (activitiesCache.length === 0) activitiesCache = await SheetsApi.fetchActivities();
+      tracceCache = await SheetsApi.fetchTracce();
+      hideNotice(status);
+      applyPercorsiFilter();
+    } catch (err) {
+      showNotice(status, `Impossibile caricare i percorsi: ${err.message}`, 'error');
+    }
+  }
+
+  function applyPercorsiFilter() {
+    currentPercorsiYear = populateYearSelect(el('#percorsiYearFilter'), currentPercorsiYear);
+    const list = percorsiForYear(currentPercorsiYear);
+
+    TracceMap.render(list, (stravaId) => {
+      const act = activityByStravaId(stravaId);
+      if (!act) return '';
+      return `<b>${escapeHtml(act.data || '')}</b><br>` +
+        `${escapeHtml(act.partenza || '')} → ${escapeHtml(act.arrivo || '')}<br>` +
+        `${escapeHtml(String(act.km ?? ''))} km`;
+    });
+
+    renderPercorsiList(list);
+    updatePercorsiStats(list);
+  }
+
+  function renderPercorsiList(list) {
+    const listEl = el('#percorsiList');
+    if (list.length === 0) {
+      listEl.innerHTML = '<span class="panel-sub" style="margin:0;">Nessun percorso disponibile per questo periodo.</span>';
+      return;
+    }
+
+    const sorted = [...list].sort((a, b) => {
+      const actA = activityByStravaId(a.stravaId);
+      const actB = activityByStravaId(b.stravaId);
+      return (actB && actB.data || '').localeCompare(actA && actA.data || '');
+    });
+
+    listEl.innerHTML = sorted.map(t => {
+      const act = activityByStravaId(t.stravaId);
+      const label = act
+        ? `${act.data || ''} · ${act.partenza || ''} → ${act.arrivo || ''}`
+        : `Attività Strava ${t.stravaId}`;
+      return `<div class="comune-row" data-stravaid="${escapeHtml(String(t.stravaId))}">${escapeHtml(label)}</div>`;
+    }).join('');
+
+    els('.comune-row', listEl).forEach(row => {
+      row.addEventListener('click', () => TracceMap.focus(row.dataset.stravaid));
+    });
+  }
+
+  function updatePercorsiStats(list) {
+    const totalKm = list.reduce((sum, t) => {
+      const act = activityByStravaId(t.stravaId);
+      return sum + (act ? (parseFloat(act.km) || 0) : 0);
+    }, 0);
+    const label = currentPercorsiYear === 'all' ? 'in totale' : `nel ${currentPercorsiYear}`;
+    el('#percorsiStats').textContent =
+      `${list.length} percorsi ${label} · ${Math.round(totalKm).toLocaleString('it-IT')} km`;
   }
 
   function getVisitedComuniSet(year) {

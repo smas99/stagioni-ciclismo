@@ -28,6 +28,7 @@
       <button class="tab-btn active" data-tab="home">Home</button>
       <button class="tab-btn" data-tab="manual">Attività indoor</button>
       <button class="tab-btn" data-tab="map">Mappa provincia</button>
+      <button class="tab-btn" data-tab="percorsi">Percorsi</button>
       <button class="tab-btn" data-tab="history">Storico</button>
       <button class="tab-btn" data-tab="settings">Impostazioni</button>
     </nav>
@@ -129,6 +130,27 @@
         <div class="comuni-list-wrap">
           <input type="search" id="comuniSearch" class="input" placeholder="Cerca un comune…">
           <div class="comuni-list" id="comuniList"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PERCORSI -->
+    <section class="tab-panel" id="tab-percorsi">
+      <h2 class="panel-title">Mappa dei percorsi</h2>
+      <p class="panel-sub">Tracciati GPS delle uscite sincronizzate da Strava.</p>
+
+      <div class="map-controls">
+        <label class="field-label" for="percorsiYearFilter" style="margin:0;">Anno</label>
+        <select id="percorsiYearFilter" class="input" style="max-width:150px; width:auto;"></select>
+      </div>
+      <p class="panel-sub" id="percorsiStats" style="margin:0 0 12px 0;"></p>
+      <div class="notice" id="percorsiStatus" style="display:none;"></div>
+
+      <div class="map-layout">
+        <div id="tracceMap" class="map-canvas"></div>
+        <div class="comuni-list-wrap">
+          <input type="search" id="percorsiSearch" class="input" placeholder="Cerca per data o partenza/arrivo…">
+          <div class="comuni-list" id="percorsiList"></div>
         </div>
       </div>
     </section>
@@ -284,6 +306,7 @@
 <script src="js/gpx-parser.js"></script>
 <script src="js/sheets-api.js"></script>
 <script src="js/map.js"></script>
+<script src="js/tracce-map.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

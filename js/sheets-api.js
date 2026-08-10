@@ -93,6 +93,12 @@ const SheetsApi = (() => {
     return apiGet('ping');
   }
 
+  // ---------- TRACCE (percorsi GPS) ----------
+  async function fetchTracce() {
+    const json = await apiGet('tracce');
+    return json.tracce || [];
+  }
+
   // ---------- STRAVA ----------
   async function stravaAuthUrl() {
     const json = await apiGet('stravaAuthUrl');
@@ -115,6 +121,7 @@ const SheetsApi = (() => {
     fetchBikes, addBike, removeBike,
     fetchPositions, setPosition, resetPosition,
     testConnection,
+    fetchTracce,
     stravaAuthUrl, stravaStatus, stravaSync
   };
 })();
