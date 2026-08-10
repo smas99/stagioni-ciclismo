@@ -10,10 +10,13 @@
 const TracceMap = (() => {
   const TRACK_COLOR = '#C2542E';
   const TRACK_COLOR_HOVER = '#9E3F1E';
+  const TRACK_COLOR_SELECTED = '#161310';
 
   let map = null;
   let layerGroup = null;
   let polylinesById = {};
+  let selectedId = null;
+  let onSelectCallback = null;
 
   function init(containerId) {
     map = L.map(containerId, { scrollWheelZoom: true });
@@ -33,6 +36,11 @@ const TracceMap = (() => {
   function clear() {
     if (layerGroup) layerGroup.clearLayers();
     polylinesById = {};
+    selectedId = null;
+  }
+
+  function normalStyle() {
+    return { color: TRACK_COLOR, weight: 3, opacity: 0.7 };
   }
 
   /**
@@ -51,14 +59,19 @@ const TracceMap = (() => {
       if (decoded.length < 2) return;
 
       const latlngs = decoded.map(p => [p.lat, p.lon]);
-      const poly = L.polyline(latlngs, {
-        color: TRACK_COLOR,
-        weight: 3,
-        opacity: 0.7
-      }).addTo(layerGroup);
+      const poly = L.polyline(latlngs, normalStyle()).addTo(layerGroup);
 
-      poly.on('mouseover', () => poly.setStyle({ color: TRACK_COLOR_HOVER, weight: 5, opacity: 1 }));
-      poly.on('mouseout', () => poly.setStyle({ color: TRACK_COLOR, weight: 3, opacity: 0.7 }));
+      poly.on('mouseover', () => {
+        if (String(t.stravaId) !== String(selectedId)) {
+          poly.setStyle({ color: TRACK_COLOR_HOVER, weight: 5, opacity: 1 });
+        }
+      });
+      poly.on('mouseout', () => {
+        if (String(t.stravaId) !== String(selectedId)) {
+          poly.setStyle(normalStyle());
+        }
+      });
+      poly.on('click', () => select(t.stravaId));
 
       if (popupFn) {
         const html = popupFn(t.stravaId);
@@ -74,17 +87,40 @@ const TracceMap = (() => {
     }
   }
 
+  /**
+   * Seleziona un percorso (lo colora di nero e lo tiene così finché non se
+   * ne seleziona un altro o non si richiama select(null)). Richiamabile sia
+   * da un click sulla mappa sia dalla lista laterale in app.js.
+   */
+  function select(stravaId) {
+    const idStr = (stravaId !== null && stravaId !== undefined) ? String(stravaId) : null;
+    const previous = selectedId;
+    selectedId = (idStr && polylinesById[idStr]) ? idStr : null;
+
+    if (previous && polylinesById[previous]) {
+      polylinesById[previous].setStyle(normalStyle());
+    }
+    if (selectedId && polylinesById[selectedId]) {
+      polylinesById[selectedId].setStyle({ color: TRACK_COLOR_SELECTED, weight: 5, opacity: 1 });
+      polylinesById[selectedId].bringToFront();
+    }
+    if (onSelectCallback) onSelectCallback(selectedId);
+  }
+
   function focus(stravaId) {
     const poly = polylinesById[stravaId];
     if (poly && map) {
       map.fitBounds(poly.getBounds(), { padding: [30, 30] });
       poly.openPopup();
     }
+    select(stravaId);
   }
+
+  function onSelect(cb) { onSelectCallback = cb; }
 
   function invalidateSize() {
     if (map) map.invalidateSize();
   }
 
-  return { init, render, focus, invalidateSize };
+  return { init, render, focus, select, onSelect, invalidateSize };
 })();

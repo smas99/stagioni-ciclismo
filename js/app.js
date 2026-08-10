@@ -556,6 +556,7 @@
     }
 
     TracceMap.init('tracceMap');
+    TracceMap.onSelect((stravaId) => highlightPercorsoInList(stravaId));
 
     el('#percorsiYearFilter').addEventListener('change', (e) => {
       currentPercorsiYear = e.target.value;
@@ -626,6 +627,14 @@
 
     els('.comune-row', listEl).forEach(row => {
       row.addEventListener('click', () => TracceMap.focus(row.dataset.stravaid));
+    });
+  }
+
+  function highlightPercorsoInList(stravaId) {
+    const listEl = el('#percorsiList');
+    if (!listEl) return;
+    els('.comune-row', listEl).forEach(row => {
+      row.classList.toggle('visited', stravaId !== null && row.dataset.stravaid === String(stravaId));
     });
   }
 
