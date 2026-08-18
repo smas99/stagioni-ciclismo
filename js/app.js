@@ -120,6 +120,7 @@
         loadHomeData();
         refreshBikesUI();
         refreshStravaStatus();
+        refreshPrivacyZoneStatus();
       } catch (e) {
         showNotice(status, `Connessione non riuscita: ${e.message}`, 'error');
       }
@@ -242,7 +243,8 @@
       durataTotale: GpxParser.formatHMS(a.elapsedTime || 0),
       note: a.name ? `Importato da Strava: ${a.name}` : 'Importato da Strava',
       comuni: comuni.join(', '),
-      stravaId: a.stravaId
+      stravaId: a.stravaId,
+      polyline: a.polyline || ''
     };
 
     await SheetsApi.addActivity(activity);
@@ -526,6 +528,33 @@
   function activitiesForYear(year) {
     if (!year || year === 'all') return activitiesCache;
     return activitiesCache.filter(a => String(a.data || '').slice(0, 4) === String(year));
+  }
+
+  // ---------- ZONA PRIVACY PERCORSI ----------
+  // Configurabile solo lato Apps Script (Proprietà dello script): il sito
+  // può solo mostrarne lo stato (attiva/raggio), mai il punto esatto, e
+  // non permette di modificarla da qui — altrimenti chi riceve il link
+  // vedrebbe comunque il tracciato completo finché non imposta lui stesso
+  // qualcosa nel proprio browser, il che non protegge nessuno tranne te.
+  // Il taglio effettivo avviene lato server, per chiunque chiami l'azione
+  // "tracce" (vedi Code.gs, funzione clipPolylineToZone_).
+  async function refreshPrivacyZoneStatus() {
+    const statusEl = el('#privacyZoneStatus');
+    if (!statusEl) return;
+    if (!SheetsApi.getUrl()) {
+      statusEl.style.display = 'none';
+      return;
+    }
+    try {
+      const status = await SheetsApi.privacyZoneStatus();
+      if (status.active) {
+        showNotice(statusEl, `Zona privacy attiva lato server: raggio ${status.radiusM} m attorno al punto configurato. Si applica a chiunque apra il link.`, 'success');
+      } else {
+        showNotice(statusEl, 'Nessuna zona privacy configurata: chi apre il link vede i percorsi per intero. Per attivarla, vedi il README ("Zona privacy nei percorsi").', 'info');
+      }
+    } catch (err) {
+      showNotice(statusEl, `Impossibile verificare lo stato della zona privacy: ${err.message}`, 'error');
+    }
   }
 
   // ---------- PERCORSI (mappa a parte dei tracciati) ----------
@@ -882,6 +911,7 @@
     initSettings();
     initBikesSettings();
     initStravaSettings();
+    refreshPrivacyZoneStatus();
     refreshBikesUI();
     loadHomeData();
   });

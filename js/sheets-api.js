@@ -115,6 +115,15 @@ const SheetsApi = (() => {
     return json.activities || [];
   }
 
+  // ---------- ZONA PRIVACY ----------
+  // Sola lettura dal sito: la zona si configura solo lato Apps Script
+  // (Proprietà dello script), mai da qui. Questa azione conferma solo se è
+  // attiva e il raggio, mai le coordinate esatte.
+  async function privacyZoneStatus() {
+    const json = await apiGet('privacyZoneStatus');
+    return { active: !!json.active, radiusM: json.radiusM ?? null };
+  }
+
   return {
     getUrl, setUrl,
     fetchActivities, addActivity,
@@ -122,6 +131,7 @@ const SheetsApi = (() => {
     fetchPositions, setPosition, resetPosition,
     testConnection,
     fetchTracce,
-    stravaAuthUrl, stravaStatus, stravaSync
+    stravaAuthUrl, stravaStatus, stravaSync,
+    privacyZoneStatus
   };
 })();

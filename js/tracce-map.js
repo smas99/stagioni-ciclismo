@@ -44,7 +44,8 @@ const TracceMap = (() => {
   }
 
   /**
-   * @param tracce   array di { stravaId, polyline } dal foglio Tracce
+   * @param tracce   array di { stravaId, polyline } dal foglio Tracce (già
+   *        tagliate lato server dalla eventuale zona privacy, vedi Code.gs)
    * @param popupFn  funzione(stravaId) => html popup, facoltativa
    */
   function render(tracce, popupFn) {
