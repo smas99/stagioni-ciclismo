@@ -52,6 +52,9 @@ const HEADERS_BICI = ['nome'];
 const SHEET_POSIZIONI = 'Posizioni';
 const HEADERS_POSIZIONI = ['comune', 'lat', 'lon'];
 
+const SHEET_TRACCE = 'Tracce';
+const HEADERS_TRACCE = ['stravaId', 'polyline'];
+
 // ---------------- STRAVA: costanti ----------------
 const STRAVA_OAUTH_AUTHORIZE = 'https://www.strava.com/oauth/authorize';
 const STRAVA_OAUTH_TOKEN = 'https://www.strava.com/oauth/token';
@@ -62,6 +65,7 @@ function setup() {
   ensureSheet_(SHEET_ATTIVITA, HEADERS_ATTIVITA);
   ensureSheet_(SHEET_BICI, HEADERS_BICI);
   ensureSheet_(SHEET_POSIZIONI, HEADERS_POSIZIONI);
+  ensureSheet_(SHEET_TRACCE, HEADERS_TRACCE);
 }
 
 /**
@@ -164,6 +168,31 @@ function doGet(e) {
       return jsonResponse_({ positions });
     }
 
+    if (action === 'tracce') {
+      const rows = sheetToObjects_(ensureSheet_(SHEET_TRACCE, HEADERS_TRACCE));
+      const zone = privacyZone_();
+      const tracce = rows
+        .filter(r => r.stravaId && r.polyline)
+        .map(r => ({
+          stravaId: r.stravaId,
+          // Se è configurata una zona privacy (Proprietà dello script), il
+          // tratto vicino a quel punto viene tagliato QUI, lato server:
+          // chi chiama questa azione da qualsiasi browser/dispositivo non
+          // riceve mai le coordinate originali di quel tratto.
+          polyline: zone ? clipPolylineToZone_(r.polyline, zone) : r.polyline
+        }))
+        .filter(t => t.polyline); // scarta i percorsi interamente dentro la zona privacy
+      return jsonResponse_({ tracce });
+    }
+
+    if (action === 'privacyZoneStatus') {
+      // Conferma solo SE è attiva e il raggio: mai le coordinate esatte,
+      // così anche questa azione (pubblica, chiamabile da chiunque abbia
+      // il link) non rivela mai dove si trova il punto.
+      const zone = privacyZone_();
+      return jsonResponse_({ active: !!zone, radiusM: zone ? zone.radiusM : null });
+    }
+
     if (action === 'stravaAuthUrl') {
       if (!stravaClientId_()) {
         return jsonResponse_({ error: 'Configura prima STRAVA_CLIENT_ID e STRAVA_CLIENT_SECRET nelle Proprietà dello script (vedi README).' });
@@ -227,7 +256,24 @@ function handleAddActivity_(d) {
     d.stravaId || ''
   ]);
 
+  if (d.polyline && d.stravaId) {
+    upsertTraccia_(d.stravaId, d.polyline);
+  }
+
   return jsonResponse_({ ok: true, id: id });
+}
+
+function upsertTraccia_(stravaId, polyline) {
+  stravaId = String(stravaId);
+  const sheet = ensureSheet_(SHEET_TRACCE, HEADERS_TRACCE);
+  const values = sheet.getDataRange().getValues();
+  for (let i = 1; i < values.length; i++) {
+    if (String(values[i][0]) === stravaId) {
+      sheet.getRange(i + 1, 1, 1, 2).setValues([[stravaId, polyline]]);
+      return;
+    }
+  }
+  sheet.appendRow([stravaId, polyline]);
 }
 
 function handleAddBike_(name) {
@@ -477,4 +523,113 @@ function handleStravaSync_() {
 
   setScriptProp_('STRAVA_LAST_SYNC_EPOCH', String(newestEpoch));
   return jsonResponse_({ activities: collected });
+}
+
+// ---------------- ZONA PRIVACY PERCORSI ----------------
+// Si configura SOLO qui, nell'editor Apps Script (icona ingranaggio
+// "Impostazioni progetto" → "Proprietà dello script" → aggiungi):
+//   PRIVACY_ZONE_LAT        es. 44.4056
+//   PRIVACY_ZONE_LON        es. 7.5432
+//   PRIVACY_ZONE_RADIUS_M   es. 400
+// MAI dal sito: così il punto esatto (es. casa) non passa mai per il
+// client e non è leggibile da chi apre il link, nemmeno indirettamente.
+// Il taglio del tratto vicino a quel punto avviene qui, prima che
+// l'azione "tracce" risponda a qualsiasi chiamata. Se non imposti queste
+// tre proprietà, la zona è semplicemente disattivata (percorsi interi).
+
+function privacyZone_() {
+  const lat = parseFloat(getScriptProp_('PRIVACY_ZONE_LAT'));
+  const lon = parseFloat(getScriptProp_('PRIVACY_ZONE_LON'));
+  const radiusM = parseFloat(getScriptProp_('PRIVACY_ZONE_RADIUS_M'));
+  if (!isFinite(lat) || !isFinite(lon) || !isFinite(radiusM)) return null;
+  return { lat: lat, lon: lon, radiusM: radiusM };
+}
+
+function haversineM_(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const toRad = function (d) { return d * Math.PI / 180; };
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.pow(Math.sin(dLat / 2), 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.pow(Math.sin(dLon / 2), 2);
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+// Decodifica una encoded polyline (formato Google/Strava) in punti {lat, lon}.
+function decodePolyline_(encoded, precision) {
+  precision = precision || 5;
+  if (!encoded) return [];
+  const factor = Math.pow(10, precision);
+  let index = 0, lat = 0, lon = 0;
+  const points = [];
+  while (index < encoded.length) {
+    let result = 1, shift = 0, b;
+    do {
+      b = encoded.charCodeAt(index++) - 63 - 1;
+      result += b << shift;
+      shift += 5;
+    } while (b >= 0x1f);
+    lat += (result & 1) ? ~(result >> 1) : (result >> 1);
+
+    result = 1; shift = 0;
+    do {
+      b = encoded.charCodeAt(index++) - 63 - 1;
+      result += b << shift;
+      shift += 5;
+    } while (b >= 0x1f);
+    lon += (result & 1) ? ~(result >> 1) : (result >> 1);
+
+    points.push({ lat: lat / factor, lon: lon / factor });
+  }
+  return points;
+}
+
+// Ricodifica punti {lat, lon} in una encoded polyline (stesso formato).
+function encodePolyline_(points, precision) {
+  precision = precision || 5;
+  const factor = Math.pow(10, precision);
+  let prevLat = 0, prevLon = 0;
+  let out = '';
+
+  function encodeValue(v) {
+    v = v < 0 ? ~(v << 1) : (v << 1);
+    let s = '';
+    while (v >= 0x20) {
+      s += String.fromCharCode((0x20 | (v & 0x1f)) + 63);
+      v >>= 5;
+    }
+    s += String.fromCharCode(v + 63);
+    return s;
+  }
+
+  points.forEach(function (p) {
+    const lat = Math.round(p.lat * factor);
+    const lon = Math.round(p.lon * factor);
+    out += encodeValue(lat - prevLat);
+    out += encodeValue(lon - prevLon);
+    prevLat = lat;
+    prevLon = lon;
+  });
+  return out;
+}
+
+// Taglia il tratto iniziale e/o finale di una polyline entro zone.radiusM
+// metri da (zone.lat, zone.lon), poi la ricodifica. Ritorna '' se l'intero
+// percorso ricade nella zona (in quel caso va scartato del tutto).
+function clipPolylineToZone_(encoded, zone) {
+  const points = decodePolyline_(encoded);
+  if (points.length === 0) return '';
+
+  const inZone = function (p) { return haversineM_(p.lat, p.lon, zone.lat, zone.lon) <= zone.radiusM; };
+
+  let start = 0;
+  while (start < points.length && inZone(points[start])) start++;
+
+  let end = points.length - 1;
+  while (end >= start && inZone(points[end])) end--;
+
+  if (end < start) return '';
+  const clipped = points.slice(start, end + 1);
+  if (clipped.length < 2) return '';
+  return encodePolyline_(clipped);
 }
