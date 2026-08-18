@@ -31,10 +31,11 @@ dovrai re-inserirli una volta tramite l'interfaccia (poche righe da
 ridigitare) — da quel momento in poi resteranno salvati sul foglio e
 visibili da qualsiasi dispositivo. Ricordati anche di:
 1. Sostituire `Code.gs` con la nuova versione nell'editor Apps Script.
-2. Rilanciare la funzione `setup` una volta (crea i fogli "Bici" e
-   "Posizioni" se non esistono ancora; da questa versione, estende anche in
-   automatico le intestazioni di un foglio "Attivita" già esistente se
-   mancano colonne più recenti — non serve più editarle a mano).
+2. Rilanciare la funzione `setup` una volta (crea i fogli "Bici",
+   "Posizioni" e "Tracce" se non esistono ancora; da questa versione,
+   estende anche in automatico le intestazioni di un foglio "Attivita" già
+   esistente se mancano colonne più recenti — non serve più editarle a
+   mano).
 3. **Gestisci distribuzioni → matita (modifica) → Nuova versione → Esegui
    la distribuzione**, altrimenti l'URL `/exec` resta congelato al codice
    vecchio.
@@ -153,11 +154,51 @@ chiamate a Google Sheets (richiede connessione internet) e le mappe
   su qualsiasi dispositivo o browser tu usi in futuro. Dal popup di un
   singolo comune puoi ripristinare la sua posizione originale in qualsiasi
   momento.
+- **Percorsi**: mappa dei tracciati GPS delle uscite sincronizzate da
+  Strava. Puoi nascondere il tratto di ogni percorso vicino a un punto (es.
+  casa), sia in partenza sia in arrivo — vedi "Zona privacy nei percorsi"
+  più sotto. Se non la configuri, i percorsi si vedono per intero.
 - **Storico**: tabella di tutte le attività salvate sul foglio.
 - **Impostazioni**: URL del foglio Google Sheets, collegamento Strava con
-  sincronizzazione automatica (vedi sezione dedicata sopra), ed elenco delle
-  tue bici (salvato anch'esso sul foglio, tab "Bici" — comodo
-  autocompletamento nei form e visibile da qualunque dispositivo).
+  sincronizzazione automatica (vedi sezione dedicata sopra), stato (sola
+  lettura) della zona privacy percorsi, ed elenco delle tue bici (salvato
+  anch'esso sul foglio, tab "Bici" — comodo autocompletamento nei form e
+  visibile da qualunque dispositivo).
+
+## Zona privacy nei percorsi (facoltativo)
+
+Se condividi il link del sito con altre persone, o semplicemente non vuoi
+che chiunque veda dove abiti, puoi far sì che il tratto di ogni percorso
+entro un certo raggio da un punto (tipicamente casa) non venga **mai**
+disegnato sulla mappa "Percorsi" — né in partenza né in arrivo. Il taglio
+avviene **lato server** (nel tuo Apps Script), prima che il tracciato esca
+verso qualsiasi browser: chiunque apra il link, da qualunque dispositivo,
+riceve già il percorso tagliato. Nessuna configurazione lato sito: il punto
+esatto non deve mai transitare dal client, altrimenti chiunque potrebbe
+vederlo (inclusi eventuali strumenti di sviluppo del browser).
+
+1. Trova le coordinate del punto che vuoi nascondere (es. cerca il tuo
+   indirizzo su [Google Maps](https://maps.google.com), tasto destro sul
+   punto esatto → il primo valore in alto è "lat, lon").
+2. Apri l'editor Apps Script del tuo Google Sheet (Estensioni → Apps
+   Script), icona **ingranaggio "Impostazioni progetto"** nel menu a
+   sinistra, scorri fino a **"Proprietà dello script"** e aggiungi tre
+   proprietà:
+   - `PRIVACY_ZONE_LAT` → la latitudine (es. `44.4056`)
+   - `PRIVACY_ZONE_LON` → la longitudine (es. `7.5432`)
+   - `PRIVACY_ZONE_RADIUS_M` → il raggio in metri da nascondere (es. `400`)
+3. Non serve nessuna nuova distribuzione per questo passaggio: le proprietà
+   dello script vengono lette a ogni chiamata, effetto immediato.
+4. In **Impostazioni → "Zona privacy nei percorsi"** sul sito, lo stato
+   diventa "Zona privacy attiva: raggio 400 m…" — conferma solo che è
+   attiva e il raggio, mai le coordinate, anche a chi visita il sito senza
+   avere accesso al tuo Apps Script.
+5. Per disattivarla, rimuovi le tre proprietà (o svuotane il valore) dallo
+   stesso pannello.
+
+Se un intero percorso ricade nella zona (es. un giretto breve nei dintorni
+di casa), quel percorso non compare affatto nella scheda Percorsi — non
+solo il tratto vicino al punto.
 
 ## Note tecniche
 
