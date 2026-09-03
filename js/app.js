@@ -872,7 +872,7 @@
 
     el('#statComuniVisitati').textContent = visited.size;
     el('#statAttivita').textContent = yearActivities.length;
-    el('#statKm').textContent = Math.round(totalKm).toLocaleString('it-IT');
+    el('#statKm').textContent = totalKm.toLocaleString('it-IT', { maximumFractionDigits: 2 });
 
     const pct = Math.round((visited.size / 247) * 100);
     el('#progressFill').style.width = `${pct}%`;
