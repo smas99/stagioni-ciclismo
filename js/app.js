@@ -839,7 +839,7 @@
     const totalDislivello = matching.reduce((sum, a) => sum + (parseFloat(a.dislivello) || 0), 0);
 
     el('#bikeSummaryCount').textContent = matching.length;
-    el('#bikeSummaryKm').textContent = Math.round(totalKm).toLocaleString('it-IT');
+    el('#bikeSummaryKm').textContent = totalKm.toLocaleString('it-IT', { maximumFractionDigits: 2 });
     el('#bikeSummaryTime').textContent = GpxParser.formatHMS(totalSeconds);
     el('#bikeSummaryDislivello').textContent = Math.round(totalDislivello).toLocaleString('it-IT');
     statsEl.style.display = 'flex';
