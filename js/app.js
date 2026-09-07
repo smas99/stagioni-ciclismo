@@ -49,25 +49,8 @@
       const bikes = await SheetsApi.fetchBikes();
       datalist.innerHTML = bikes.map(b => `<option value="${escapeHtml(b)}">`).join('');
       list.innerHTML = bikes.length
-        ? bikes.map(b => `
-            <span class="bike-chip">${escapeHtml(b)}
-              <button type="button" data-bike="${escapeHtml(b)}" aria-label="Rimuovi">✕</button>
-            </span>`).join('')
+        ? bikes.map(b => `<span class="bike-chip">${escapeHtml(b)}</span>`).join('')
         : '<span class="panel-sub" style="margin:0;">Nessuna bici salvata ancora.</span>';
-
-      els('.bike-chip button', list).forEach(btn => {
-        btn.addEventListener('click', async () => {
-          btn.disabled = true;
-          try {
-            await SheetsApi.removeBike(btn.dataset.bike);
-            await refreshBikesUI();
-          } catch (err) {
-            btn.disabled = false;
-            list.insertAdjacentHTML('beforeend',
-              `<div class="notice notice-error" style="width:100%; margin-top:8px;">Errore nella rimozione: ${escapeHtml(err.message)}</div>`);
-          }
-        });
-      });
     } catch (err) {
       list.innerHTML = `<span class="panel-sub" style="margin:0; color:var(--terracotta-dark);">Errore nel caricamento bici: ${escapeHtml(err.message)}</span>`;
     }
