@@ -220,7 +220,7 @@
       bici: a.gearName || '',
       partenza,
       arrivo,
-      km: Math.round((a.distance / 1000) * 100) / 100,
+      km: Math.floor((a.distance / 1000) * 100) / 100,
       dislivello: Math.round(a.elevationGain || 0),
       tempoMovimento: GpxParser.formatHMS(a.movingTime || 0),
       durataTotale: GpxParser.formatHMS(a.elapsedTime || 0),
