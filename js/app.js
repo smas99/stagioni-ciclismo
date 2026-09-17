@@ -86,28 +86,8 @@
 
   // ---------- SETTINGS ----------
   function initSettings() {
-    el('#sheetsUrlInput').value = SheetsApi.getUrl();
-    const status = el('#settingsStatus');
-
-    el('#saveSheetsUrlBtn').addEventListener('click', () => {
-      SheetsApi.setUrl(el('#sheetsUrlInput').value);
-      showNotice(status, 'URL salvato. Vai su "Testa connessione" per verificarlo.', 'success');
-    });
-
-    el('#testSheetsUrlBtn').addEventListener('click', async () => {
-      showNotice(status, 'Test in corso…', 'info');
-      try {
-        SheetsApi.setUrl(el('#sheetsUrlInput').value);
-        await SheetsApi.testConnection();
-        showNotice(status, 'Connessione riuscita! Il foglio Google Sheets risponde correttamente.', 'success');
-        loadHomeData();
-        refreshBikesUI();
-        refreshStravaStatus();
-        refreshPrivacyZoneStatus();
-      } catch (e) {
-        showNotice(status, `Connessione non riuscita: ${e.message}`, 'error');
-      }
-    });
+    // Il collegamento a Google Sheets non serve più: i dati sono su Supabase
+    // (URL e chiave sono già dentro js/supabase-api.js).
   }
 
   // ---------- STRAVA ----------
@@ -384,7 +364,7 @@
 
       submitBtn.disabled = true;
       statusEl.style.color = 'var(--ink-soft)';
-      statusEl.textContent = 'Salvataggio su Google Sheets…';
+      statusEl.textContent = 'Salvataggio...';
 
       try {
         await SheetsApi.addActivity(activity);
@@ -441,7 +421,7 @@
         showNotice(saveStatus, `Impossibile caricare le correzioni di posizione salvate: ${err.message}`, 'error');
       }
     } else {
-      showNotice(saveStatus, 'Collega Google Sheets in "Impostazioni" per salvare le correzioni di posizione in modo permanente.', 'info');
+      showNotice(saveStatus, 'In attesa di collegamento.', 'info');
     }
 
     CnMap.init('cnMap', positions);
@@ -462,7 +442,7 @@
 
     el('#toggleEditModeBtn').addEventListener('click', () => {
       if (!SheetsApi.getUrl()) {
-        showNotice(saveStatus, 'Collega prima Google Sheets in "Impostazioni": senza foglio collegato le correzioni non potrebbero essere salvate.', 'error');
+        showNotice(saveStatus, 'In attesa collegamento.', 'error');
         return;
       }
       editModeActive = !editModeActive;
@@ -621,7 +601,7 @@
   async function refreshTracce() {
     const status = el('#percorsiStatus');
     if (!SheetsApi.getUrl()) return;
-    showNotice(status, 'Caricamento percorsi dal foglio Google Sheets…', 'info');
+    showNotice(status, 'Caricamento percorsi...', 'info');
     try {
       // le attività servono per etichettare ogni traccia (data, partenza, km…)
       if (activitiesCache.length === 0) activitiesCache = await SheetsApi.fetchActivities();
@@ -743,7 +723,7 @@
   async function refreshHistory() {
     const status = el('#historyStatus');
     const tbody = el('#activitiesTableBody');
-    showNotice(status, 'Caricamento attività dal foglio Google Sheets…', 'info');
+    showNotice(status, 'Caricamento attività...', 'info');
     try {
       activitiesCache = await SheetsApi.fetchActivities();
       hideNotice(status);
@@ -871,7 +851,7 @@
       showNotice(status, 'Nessun foglio Google Sheets collegato. Vai su "Impostazioni" per configurarlo.', 'info');
       return;
     }
-    showNotice(status, 'Caricamento dati da Google Sheets…', 'info');
+    showNotice(status, 'Caricamento dati...', 'info');
     try {
       activitiesCache = await SheetsApi.fetchActivities();
       hideNotice(status);
