@@ -168,6 +168,14 @@ const SheetsApi = (() => {
     return { ok: true, id: data.id };
   }
 
+  // ---------- FILTRO ATTIVITÀ PER COMUNI ATTRAVERSATI (tutti insieme) ----------
+  async function attivitaPerComuni(comuni) {
+    if (!comuni || comuni.length === 0) return [];
+    const { data, error } = await client.rpc('attivita_per_comuni', { comuni_selezionati: comuni });
+    throwIfError(error);
+    return data || [];
+  }
+
   // ---------- CONNESSIONE ----------
   async function testConnection() {
     const { error } = await client.from('bici').select('id', { count: 'exact', head: true });
@@ -213,6 +221,7 @@ const SheetsApi = (() => {
     fetchPositions, setPosition, resetPosition,
     testConnection,
     fetchTracce,
+    attivitaPerComuni,
     stravaAuthUrl, stravaStatus, stravaSync,
     privacyZoneStatus
   };

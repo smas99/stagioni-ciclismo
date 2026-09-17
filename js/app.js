@@ -237,7 +237,7 @@
   }
 
   // ---------- CHIP INPUT (comuni attraversati) ----------
-  function attachComuniChipInput(formEl, initial = []) {
+  function attachComuniChipInput(formEl, initial = [], onChange = null) {
     const wrap = el('[data-role="comuni-chip-input"]', formEl);
     const chipsEl = el('[data-role="chips"]', wrap);
     const searchEl = el('[data-role="chip-search"]', wrap);
@@ -259,6 +259,7 @@
           render();
         });
       });
+      if (onChange) onChange([...selected]);
     }
 
     function renderSuggestions(query) {
@@ -544,17 +545,45 @@
   let tracceMapInitialized = false;
   let tracceCache = [];
   let currentPercorsiYear = 'all';
+  let percorsiComuniSelezionati = [];
+  let percorsiComuniStravaIds = null; // null = filtro comuni non attivo
 
   function activityByStravaId(stravaId) {
     return activitiesCache.find(a => String(a.stravaId) === String(stravaId));
   }
 
   function percorsiForYear(year) {
-    if (!year || year === 'all') return tracceCache;
-    return tracceCache.filter(t => {
+    let list = tracceCache;
+    if (percorsiComuniStravaIds) {
+      list = list.filter(t => percorsiComuniStravaIds.has(String(t.stravaId)));
+    }
+    if (!year || year === 'all') return list;
+    return list.filter(t => {
       const act = activityByStravaId(t.stravaId);
       return act && String(act.data || '').slice(0, 4) === String(year);
     });
+  }
+
+  async function applyPercorsiComuniFilter(selezionati) {
+    percorsiComuniSelezionati = selezionati;
+    if (selezionati.length === 0) {
+      percorsiComuniStravaIds = null;
+      applyPercorsiFilter();
+      return;
+    }
+    const status = el('#percorsiStatus');
+    showNotice(status, 'Cerco i percorsi che attraversano tutti i comuni selezionati…', 'info');
+    try {
+      const trovate = await SheetsApi.attivitaPerComuni(selezionati);
+      percorsiComuniStravaIds = new Set(
+        trovate.map(a => a.stravaId).filter(Boolean).map(String)
+      );
+      hideNotice(status);
+    } catch (err) {
+      showNotice(status, `Impossibile applicare il filtro comuni: ${err.message}`, 'error');
+      percorsiComuniStravaIds = new Set(); // nessun risultato, meglio di un errore silenzioso
+    }
+    applyPercorsiFilter();
   }
 
   async function ensureTracceMapInit() {
@@ -569,6 +598,10 @@
 
     TracceMap.init('tracceMap');
     TracceMap.onSelect((stravaId) => highlightPercorsoInList(stravaId));
+
+    attachComuniChipInput(el('#percorsiComuniFilter'), [], (selezionati) => {
+      applyPercorsiComuniFilter(selezionati);
+    });
 
     el('#percorsiYearFilter').addEventListener('change', (e) => {
       currentPercorsiYear = e.target.value;
@@ -619,7 +652,10 @@
   function renderPercorsiList(list) {
     const listEl = el('#percorsiList');
     if (list.length === 0) {
-      listEl.innerHTML = '<span class="panel-sub" style="margin:0;">Nessun percorso disponibile per questo periodo.</span>';
+      const msg = percorsiComuniSelezionati.length > 0
+        ? `Nessun percorso ha attraversato insieme: ${percorsiComuniSelezionati.join(', ')}.`
+        : 'Nessun percorso disponibile per questo periodo.';
+      listEl.innerHTML = `<span class="panel-sub" style="margin:0;">${escapeHtml(msg)}</span>`;
       return;
     }
 
