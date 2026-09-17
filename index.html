@@ -139,6 +139,15 @@
       <h2 class="panel-title">Mappa dei percorsi</h2>
       <p class="panel-sub">Tracciati GPS delle uscite sincronizzate da Strava.</p>
 
+      <div class="field field-full" id="percorsiComuniFilter" style="margin-bottom:16px;">
+        <label class="field-label">Filtra per comuni attraversati (tutti insieme nello stesso giro)</label>
+        <div class="chip-input" data-role="comuni-chip-input">
+          <div class="chips" data-role="chips"></div>
+          <input type="text" class="chip-search" data-role="chip-search" placeholder="Aggiungi un comune…" autocomplete="off">
+        </div>
+        <div class="chip-suggestions" data-role="chip-suggestions"></div>
+      </div>
+
       <div class="map-controls">
         <label class="field-label" for="percorsiYearFilter" style="margin:0;">Anno</label>
         <select id="percorsiYearFilter" class="input" style="max-width:150px; width:auto;"></select>
