@@ -57,12 +57,16 @@ const SheetsApi = (() => {
   }
 
   // ---------- POSIZIONI COMUNI ----------
+  // Ogni comune può avere un raggio di rilevamento diverso (raggio_m):
+  // di default 800m, alzato solo per i comuni più estesi/con centro urbano
+  // ampio, dove un tracciato può passare lontano dal pallino pur restando
+  // dentro il comune.
   async function fetchPositions() {
-    const { data, error } = await client.from('posizioni').select('comune, lat, lon');
+    const { data, error } = await client.from('posizioni').select('comune, lat, lon, raggio_m');
     throwIfError(error);
     const positions = {};
     (data || []).forEach(r => {
-      if (r.comune) positions[r.comune] = { lat: r.lat, lon: r.lon };
+      if (r.comune) positions[r.comune] = { lat: r.lat, lon: r.lon, raggioM: r.raggio_m };
     });
     return positions;
   }

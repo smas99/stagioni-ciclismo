@@ -168,7 +168,8 @@ const GpxParser = (() => {
       return {
         name,
         lat: ov ? ov.lat : f.properties.lat,
-        lon: ov ? ov.lon : f.properties.lon
+        lon: ov ? ov.lon : f.properties.lon,
+        radiusM: (ov && ov.raggioM) ? ov.raggioM : MARKER_PROXIMITY_M
       };
     });
   }
@@ -186,14 +187,15 @@ const GpxParser = (() => {
   }
 
   /**
-   * Tutti i comuni il cui punto sulla mappa dista da (lat, lon) meno di
-   * `radiusM` metri, ordinati dal più vicino.
+   * Tutti i comuni il cui punto sulla mappa dista da (lat, lon) meno del
+   * proprio raggio di rilevamento (`c.radiusM`, di default MARKER_PROXIMITY_M
+   * salvo override per comuni più estesi), ordinati dal più vicino.
    */
-  function comuniWithinRadius(lat, lon, comuniPoints, radiusM) {
+  function comuniWithinRadius(lat, lon, comuniPoints) {
     const found = [];
     for (const c of comuniPoints) {
       const d = haversine(lat, lon, c.lat, c.lon);
-      if (d <= radiusM) found.push({ name: c.name, distance: d });
+      if (d <= (c.radiusM || MARKER_PROXIMITY_M)) found.push({ name: c.name, distance: d });
     }
     found.sort((a, b) => a.distance - b.distance);
     return found.map(f => f.name);
@@ -202,11 +204,13 @@ const GpxParser = (() => {
   /**
    * Scorre il tracciato e determina l'insieme (in ordine di prima comparsa)
    * dei comuni della provincia di Cuneo attraversati: un comune è
-   * considerato attraversato se il tracciato passa entro `radiusM` metri
-   * dal suo punto sulla mappa. Per performance, campiona un punto ogni
-   * `sampleEveryM` metri circa.
+   * considerato attraversato se il tracciato passa entro il raggio di
+   * rilevamento proprio di quel comune (`c.radiusM`, di default
+   * MARKER_PROXIMITY_M salvo override in `posizioni.raggio_m` per i comuni
+   * più estesi) dal suo punto sulla mappa. Per performance, campiona un
+   * punto ogni `sampleEveryM` metri circa.
    */
-  function detectComuniAttraversati(points, comuniPoints, sampleEveryM = 150, radiusM = MARKER_PROXIMITY_M) {
+  function detectComuniAttraversati(points, comuniPoints, sampleEveryM = 150) {
     const ordered = [];
     const seen = new Set();
     let lastSampleDist = -Infinity;
@@ -221,7 +225,7 @@ const GpxParser = (() => {
       }
       lastSampleDist = cumDist;
 
-      const names = comuniWithinRadius(points[i].lat, points[i].lon, comuniPoints, radiusM);
+      const names = comuniWithinRadius(points[i].lat, points[i].lon, comuniPoints);
       names.forEach(name => {
         if (!seen.has(name)) {
           seen.add(name);
