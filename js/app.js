@@ -762,21 +762,23 @@
     `).join('');
   }
 
-  // ---------- STATISTICHE (top 10 km / dislivello) ----------
-  function percorsoLabel(a) {
-    const parts = [a.partenza || '', a.arrivo || ''].filter(Boolean);
-    return parts.length === 2 ? `${parts[0]} → ${parts[1]}` : (parts[0] || '—');
+  // ---------- STATISTICHE (top 10, tabella unica con metrica a scelta) ----------
+  let currentStatsMetric = 'km';
+
+  function stripStravaPrefix(note) {
+    return String(note || '').replace(/^Importato da Strava:\s*/, '');
   }
 
-  function renderStatsTable(tbodyId, list, valueKey, valueFormatter) {
-    const tbody = el(`#${tbodyId}`);
+  function renderStatsTable(list) {
+    const tbody = el('#statsBody');
     tbody.innerHTML = list.map((a, i) => `
       <tr>
         <td>${i + 1}</td>
         <td>${escapeHtml(a.data || '')}</td>
-        <td>${escapeHtml(percorsoLabel(a))}</td>
-        <td>${escapeHtml(valueFormatter(a[valueKey]))}</td>
-        <td>${escapeHtml(a.bici || '')}</td>
+        <td>${escapeHtml((parseFloat(a.km) || 0).toLocaleString('it-IT', { maximumFractionDigits: 2 }))}</td>
+        <td>${escapeHtml(String(Math.round(parseFloat(a.dislivello) || 0)))}</td>
+        <td>${escapeHtml(a.tempoMovimento || '')}</td>
+        <td>${escapeHtml(stripStravaPrefix(a.note))}</td>
       </tr>
     `).join('');
   }
@@ -786,28 +788,19 @@
     const yearActivities = activitiesForYear(currentStatsYear);
     const emptyNotice = el('#statsEmpty');
 
-    if (yearActivities.length === 0) {
+    const metricKey = currentStatsMetric;
+    const top = [...yearActivities]
+      .filter(a => (parseFloat(a[metricKey]) || 0) > 0)
+      .sort((a, b) => (parseFloat(b[metricKey]) || 0) - (parseFloat(a[metricKey]) || 0))
+      .slice(0, 10);
+
+    if (top.length === 0) {
       showNotice(emptyNotice, 'Nessuna attività trovata per questo periodo.', 'info');
-      renderStatsTable('statsKmBody', [], 'km', () => '');
-      renderStatsTable('statsDislivelloBody', [], 'dislivello', () => '');
+      renderStatsTable([]);
       return;
     }
     hideNotice(emptyNotice);
-
-    const topKm = [...yearActivities]
-      .filter(a => (parseFloat(a.km) || 0) > 0)
-      .sort((a, b) => (parseFloat(b.km) || 0) - (parseFloat(a.km) || 0))
-      .slice(0, 10);
-
-    const topDislivello = [...yearActivities]
-      .filter(a => (parseFloat(a.dislivello) || 0) > 0)
-      .sort((a, b) => (parseFloat(b.dislivello) || 0) - (parseFloat(a.dislivello) || 0))
-      .slice(0, 10);
-
-    renderStatsTable('statsKmBody', topKm, 'km',
-      (v) => (parseFloat(v) || 0).toLocaleString('it-IT', { maximumFractionDigits: 2 }));
-    renderStatsTable('statsDislivelloBody', topDislivello, 'dislivello',
-      (v) => Math.round(parseFloat(v) || 0).toLocaleString('it-IT'));
+    renderStatsTable(top);
   }
 
   // ---------- RIEPILOGO PER BICI (home) ----------
@@ -959,6 +952,10 @@
     });
     el('#statsYearFilter').addEventListener('change', (e) => {
       currentStatsYear = e.target.value;
+      refreshStatistiche();
+    });
+    el('#statsMetricFilter').addEventListener('change', (e) => {
+      currentStatsMetric = e.target.value;
       refreshStatistiche();
     });
     initSettings();
