@@ -775,8 +775,8 @@
       <tr>
         <td>${i + 1}</td>
         <td>${escapeHtml(a.data || '')}</td>
-        <td>${escapeHtml((parseFloat(a.km) || 0).toLocaleString('it-IT', { maximumFractionDigits: 2 }))}</td>
-        <td>${escapeHtml(String(Math.round(parseFloat(a.dislivello) || 0)))}</td>
+        <td class="col-km">${escapeHtml((parseFloat(a.km) || 0).toLocaleString('it-IT', { maximumFractionDigits: 2 }))}</td>
+        <td class="col-dislivello">${escapeHtml(String(Math.round(parseFloat(a.dislivello) || 0)))}</td>
         <td>${escapeHtml(a.tempoMovimento || '')}</td>
         <td>${escapeHtml(stripStravaPrefix(a.note))}</td>
       </tr>
@@ -789,6 +789,7 @@
     const emptyNotice = el('#statsEmpty');
 
     const metricKey = currentStatsMetric;
+    el('#statsTable').dataset.metric = metricKey;
     const top = [...yearActivities]
       .filter(a => (parseFloat(a[metricKey]) || 0) > 0)
       .sort((a, b) => (parseFloat(b[metricKey]) || 0) - (parseFloat(a[metricKey]) || 0))
