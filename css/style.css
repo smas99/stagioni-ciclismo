@@ -427,6 +427,16 @@ h1,h2,h3{
   color:var(--ink-soft);
   font-family:'Barlow Condensed', sans-serif;
 }
+.stats-table[data-metric="km"] .col-km,
+.stats-table[data-metric="dislivello"] .col-dislivello{
+  background: var(--cream-dim);
+  color: var(--terracotta-dark);
+  font-weight:700;
+}
+.stats-table[data-metric="km"] th.col-km,
+.stats-table[data-metric="dislivello"] th.col-dislivello{
+  color: var(--terracotta-dark);
+}
 
 /* ---------- TABLE ---------- */
 .table-wrap{ overflow-x:auto; border:1px solid var(--line); border-radius: var(--radius); background:var(--white); }
