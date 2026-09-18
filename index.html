@@ -29,6 +29,7 @@
       <button class="tab-btn" data-tab="manual">Attività indoor</button>
       <button class="tab-btn" data-tab="map">Mappa provincia</button>
       <button class="tab-btn" data-tab="percorsi">Percorsi</button>
+      <button class="tab-btn" data-tab="statistiche">Statistiche</button>
       <button class="tab-btn" data-tab="history">Storico</button>
       <button class="tab-btn" data-tab="settings">Impostazioni</button>
     </nav>
@@ -161,6 +162,47 @@
           <input type="search" id="percorsiSearch" class="input" placeholder="Cerca per data o partenza/arrivo…">
           <div class="comuni-list" id="percorsiList"></div>
         </div>
+      </div>
+    </section>
+
+    <!-- STATISTICHE -->
+    <section class="tab-panel" id="tab-statistiche">
+      <h2 class="panel-title">Statistiche</h2>
+      <p class="panel-sub">Le uscite migliori per distanza e dislivello.</p>
+
+      <div class="map-controls">
+        <label class="field-label" for="statsYearFilter" style="margin:0;">Anno</label>
+        <select id="statsYearFilter" class="input" style="max-width:150px; width:auto;"></select>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stats-block">
+          <h3>Top 10 · Km</h3>
+          <div class="table-wrap">
+            <table class="activities-table stats-table">
+              <thead>
+                <tr><th>#</th><th>Data</th><th>Percorso</th><th>Km</th><th>Bici</th></tr>
+              </thead>
+              <tbody id="statsKmBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="stats-block">
+          <h3>Top 10 · Dislivello</h3>
+          <div class="table-wrap">
+            <table class="activities-table stats-table">
+              <thead>
+                <tr><th>#</th><th>Data</th><th>Percorso</th><th>D+ (m)</th><th>Bici</th></tr>
+              </thead>
+              <tbody id="statsDislivelloBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="statsEmpty" class="notice notice-info" style="display:none; margin-top:16px;">
+        Nessuna attività trovata per questo periodo.
       </div>
     </section>
 
