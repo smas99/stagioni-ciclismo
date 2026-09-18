@@ -173,32 +173,20 @@
       <div class="map-controls">
         <label class="field-label" for="statsYearFilter" style="margin:0;">Anno</label>
         <select id="statsYearFilter" class="input" style="max-width:150px; width:auto;"></select>
+        <label class="field-label" for="statsMetricFilter" style="margin:0;">Classifica</label>
+        <select id="statsMetricFilter" class="input" style="max-width:200px; width:auto;">
+          <option value="km">Top 10 · Km</option>
+          <option value="dislivello">Top 10 · Dislivello</option>
+        </select>
       </div>
 
-      <div class="stats-grid">
-        <div class="stats-block">
-          <h3>Top 10 · Km</h3>
-          <div class="table-wrap">
-            <table class="activities-table stats-table">
-              <thead>
-                <tr><th>#</th><th>Data</th><th>Percorso</th><th>Km</th><th>Bici</th></tr>
-              </thead>
-              <tbody id="statsKmBody"></tbody>
-            </table>
-          </div>
-        </div>
-
-        <div class="stats-block">
-          <h3>Top 10 · Dislivello</h3>
-          <div class="table-wrap">
-            <table class="activities-table stats-table">
-              <thead>
-                <tr><th>#</th><th>Data</th><th>Percorso</th><th>D+ (m)</th><th>Bici</th></tr>
-              </thead>
-              <tbody id="statsDislivelloBody"></tbody>
-            </table>
-          </div>
-        </div>
+      <div class="table-wrap">
+        <table class="activities-table stats-table">
+          <thead>
+            <tr><th>#</th><th>Data</th><th>Km</th><th>D+ (m)</th><th>T. movimento</th><th>Note</th></tr>
+          </thead>
+          <tbody id="statsBody"></tbody>
+        </table>
       </div>
 
       <div id="statsEmpty" class="notice notice-info" style="display:none; margin-top:16px;">
