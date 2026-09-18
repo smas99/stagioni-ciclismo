@@ -29,6 +29,7 @@
         if (btn.dataset.tab === 'map') ensureMapInit();
         if (btn.dataset.tab === 'percorsi') ensureTracceMapInit();
         if (btn.dataset.tab === 'history') refreshHistory();
+        if (btn.dataset.tab === 'statistiche') refreshStatistiche();
         if (btn.dataset.tab === 'manual') ensureManualForm();
       });
     });
@@ -407,6 +408,7 @@
   let editModeActive = false;
   let currentMapYear = 'all';
   let currentHomeYear = 'all';
+  let currentStatsYear = 'all';
 
   async function ensureMapInit() {
     if (mapInitialized) { setTimeout(() => CnMap && window.dispatchEvent(new Event('resize')), 50); return; }
@@ -760,6 +762,54 @@
     `).join('');
   }
 
+  // ---------- STATISTICHE (top 10 km / dislivello) ----------
+  function percorsoLabel(a) {
+    const parts = [a.partenza || '', a.arrivo || ''].filter(Boolean);
+    return parts.length === 2 ? `${parts[0]} → ${parts[1]}` : (parts[0] || '—');
+  }
+
+  function renderStatsTable(tbodyId, list, valueKey, valueFormatter) {
+    const tbody = el(`#${tbodyId}`);
+    tbody.innerHTML = list.map((a, i) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${escapeHtml(a.data || '')}</td>
+        <td>${escapeHtml(percorsoLabel(a))}</td>
+        <td>${escapeHtml(valueFormatter(a[valueKey]))}</td>
+        <td>${escapeHtml(a.bici || '')}</td>
+      </tr>
+    `).join('');
+  }
+
+  function refreshStatistiche() {
+    currentStatsYear = populateYearSelect(el('#statsYearFilter'), currentStatsYear);
+    const yearActivities = activitiesForYear(currentStatsYear);
+    const emptyNotice = el('#statsEmpty');
+
+    if (yearActivities.length === 0) {
+      showNotice(emptyNotice, 'Nessuna attività trovata per questo periodo.', 'info');
+      renderStatsTable('statsKmBody', [], 'km', () => '');
+      renderStatsTable('statsDislivelloBody', [], 'dislivello', () => '');
+      return;
+    }
+    hideNotice(emptyNotice);
+
+    const topKm = [...yearActivities]
+      .filter(a => (parseFloat(a.km) || 0) > 0)
+      .sort((a, b) => (parseFloat(b.km) || 0) - (parseFloat(a.km) || 0))
+      .slice(0, 10);
+
+    const topDislivello = [...yearActivities]
+      .filter(a => (parseFloat(a.dislivello) || 0) > 0)
+      .sort((a, b) => (parseFloat(b.dislivello) || 0) - (parseFloat(a.dislivello) || 0))
+      .slice(0, 10);
+
+    renderStatsTable('statsKmBody', topKm, 'km',
+      (v) => (parseFloat(v) || 0).toLocaleString('it-IT', { maximumFractionDigits: 2 }));
+    renderStatsTable('statsDislivelloBody', topDislivello, 'dislivello',
+      (v) => Math.round(parseFloat(v) || 0).toLocaleString('it-IT'));
+  }
+
   // ---------- RIEPILOGO PER BICI (home) ----------
   function parseHMSToSeconds(str) {
     if (!str) return 0;
@@ -906,6 +956,10 @@
     el('#homeYearFilter').addEventListener('change', (e) => {
       currentHomeYear = e.target.value;
       updateHomeStats();
+    });
+    el('#statsYearFilter').addEventListener('change', (e) => {
+      currentStatsYear = e.target.value;
+      refreshStatistiche();
     });
     initSettings();
     initBikesSettings();
